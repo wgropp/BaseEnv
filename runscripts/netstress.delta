@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH --mem=16g
+#SBATCH --nodes=8
+#SBATCH --ntasks-per-node=1  # 1 per node (later, 1 per socket)
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=cpu      # <- or one of: gpuA100x4 gpuA40x4 gpuA100x8 gpuMI100x8
+#SBATCH --reservation=no_scratch_requirements
+#SBATCH --account=bbkf-delta-cpu
+#SBATCH --job-name=netstress
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:10:00      # hh:mm:ss for the job
+### GPU options ###
+##SBATCH --gpus-per-node=0
+##SBATCH --gpu-bind=none     # <- or closest
+
+module reset # use default
+module list  # job documentation and metadata
+echo "job is starting on `hostname`"
+# add --unbuffered to srun if -progress used with netstress
+srun --unbuffered ./netstress -progress -ttime 00:05 > netstress-out.txt

@@ -1,0 +1,67 @@
+#!/bin/bash
+#SBATCH --mem=16g
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=16 # 128  # 1 per core
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=cpu      # <- or one of: gpuA100x4 gpuA40x4 gpuA100x8 gpuMI100x8
+#SBATCH --account=bbkf-delta-cpu
+#SBATCH --job-name=ninfo
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:01:30      # hh:mm:ss for the job
+### GPU options ###
+##SBATCH --gpus-per-node=0
+##SBATCH --gpu-bind=none     # <- or closest
+
+module reset # use default
+module list  # job documentation and metadata
+echo "job is starting on `hostname`"
+export TOPO_SOCKETSPERNODE=2
+export TOPO_NUMASPERCHIP=4
+export TOPO_CORESPERCHIP=64
+set -x
+debugopts="-debugcalls -debugclass getdesc:a -debugclass printhw:a -debugclass getnodeinfo:a -debugclass ilist:a"
+# --unbuffered because all processes write detail information if not directed
+# into a file.
+# ninfo2 should run only on a single process
+#srun --unbuffered ./ninfo2 -nsocket 2 -nnuma 4 -ncore 64 -o ninfo-out.txt -od ninfodetail.txt > ninfo-stdout.txt 2>ninfo-stderr.txt
+date
+srun -l ./nodectest $debugopts > nodectest1-stdout.txt 2>nodectest1-stderr.txt
+date
+srun -l ./nodectest -hw-numnodes 4 -hw-numsocks 2 -hw-forcedebug $debugopts \
+    > nodectest2-stdout.txt 2>nodectest2-stderr.txt
+date
+# -debugclass getdesc:a
+srun -l ./nodectest -hw-numnodes 2 -hw-numsocks 2 -hw-forcedebug $debugopts \
+    > nodectest3-stdout.txt 2>nodectest3-stderr.txt
+date
+# The environment variable version. Should give the same output as above
+#BENV_DEBUG_HWDESC_GET=YES
+BENV_HWDESC_DEBUG=YES
+BENV_HWDESC_DEBUG_SPN=2
+BENV_HWDESC_DEBUG_PPN=4
+srun -l ./nodectest $debugopts > nodectest4-stdout.txt 2>nodectest4-stderr.txt
+date
+# -debugclass getdesc:a -debugclass args
+# Should be sufficient to unset debug
+unset BENV_HWDESC_DEBUG
+# Should give one node output
+srun -l ./nodectest > nodectest5-stdout.txt 2>nodectest5-stderr.txt
+date
+# Run but do not use hwloc
+srun -l ./nodectest -hw-hwdesc-rmflag hwloc $debugopts > nodectest6-stdout.txt 2>nodectest6-stderr.txt
+date
+
+srun -l ./hwprint > hwprint-stdout.txt 2>hwprint-stderr.txt
+date
+
+# Test GetGeneral routine. Note that it doesn't use the -hw prefix
+srun -l ./gentest -numnodes 4 -numsocks 1 -forcedebug > gentest1-stdout.txt 2>gentest-stderr.txt
+date
+
+srun -l ./genwnode -hw-numnodes 4 -hw-numsocks 1 -hw-forcedebug > genwnode1-stdout.txt 2>genwnode1-stderr.txt
+date
+
+echo "End of job"
+
+
+

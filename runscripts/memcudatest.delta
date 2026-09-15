@@ -1,0 +1,21 @@
+#!/bin/bash
+#SBATCH --mem=16g
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1  # 1 per node
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=gpuA100x4      # <- or one of: cpu gpuA100x4 gpuA40x4 gpuA100x8 gpuMI100x8
+#SBATCH --account=bbkf-delta-gpu
+#SBATCH --job-name=memcudatest
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:05:00      # hh:mm:ss for the job
+### GPU options ###
+#SBATCH --gpus-per-node=1
+##SBATCH --gpu-bind=none     # <- or closest
+
+module list  # job documentation and metadata
+module load nvhpc
+echo "job is starting on `hostname`"
+echo "Starting cuda version"
+srun ./memcudatest -v -memtype cuda 2>&1 > memcudatest-out.txt
+echo "Starting malloc version"
+srun ./memcudatest -memtype malloc 2>&1 > memcudatest-malloc.txt

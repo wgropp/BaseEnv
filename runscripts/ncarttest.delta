@@ -1,0 +1,29 @@
+#!/bin/bash
+#SBATCH --mem=16g
+# was 6/16
+#SBATCH --nodes=4            # Use a number of nodes that is *not* a power of 2
+#SBATCH --ntasks-per-node=8 # 16 per node (later, 1 per core)
+eSBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=cpu      # <- or one of: gpuA100x4 gpuA40x4 gpuA100x8 gpuMI100x8
+#SBATCH --account=bbkf-delta-cpu
+#SBATCH --job-name=ncarttest
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:10:00      # hh:mm:ss for the job
+### GPU options ###
+##SBATCH --gpus-per-node=0
+##SBATCH --gpu-bind=none     # <- or closest
+
+module reset # use default
+module list  # job documentation and metadata
+echo "job is starting on `hostname`"
+# add --unbuffered to srun if -progress used with ncarttest
+echo "ncarttest"
+srun --unbuffered ./ncarttest > ncarttest-out.txt
+# This should match the selection above - number of nodes * numbers of tasks/node
+#echo "ncarttest on 4\*128 tasks"
+#srun --unbuffered --nodes=4 ./ncarttest > ncarttest-pw2-out.txt
+#echo "ncarttest with srun providing cyclic distribution"
+#srun --unbuffered --distribution=cyclic ./ncarttest > ncarttest-cyclic.txt
+#echo "ncarttest with srun providing cyclic distribution"
+#export SLURM_DISTRIBUTION="BLOCK:CYCLIC"
+#srun --unbuffered --distribution=block:cyclic ./ncarttest > ncarttest-bcyclic.txt

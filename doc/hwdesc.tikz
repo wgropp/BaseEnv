@@ -1,0 +1,51 @@
+\begin{tikzpicture}[scale=1.0,font=\tiny]
+%
+% Core 0
+\draw[align=left] (0,-1.25cm) rectangle (2cm,-2.75cm)
+node at (1cm,-1.7cm) (nodecore0) {Core 0\\comm[4],L=0,1};
+\draw (.5cm,-2.25cm) circle (.3cm) node {0};
+% Core 1
+\draw[align=left] (0,-2.85cm) rectangle (2cm,-4.35cm)
+node at (1cm, -3.3cm) (nodecore1) {Core 1\\comm[4],L=0,1};
+\draw (.5cm,-3.85cm) circle (.3cm) node {0};
+% NUMA 0
+\draw[align=left] (-.5cm,-0.6cm) rectangle (3cm,-4.45cm)
+node at (2cm,-0.85cm) (numa0) {NUMA 0\\comm[3],l=0,2};
+\draw (2.5cm,-2.25cm) circle (.3cm) node {0};
+\draw (2.5cm,-3.85cm) circle (.3cm) node {1};
+
+%
+% Core 2
+\draw[align=left] (0,-5.3cm) rectangle (2cm,-6.8cm)
+node at (1cm,-5.75cm) (nodecore0) {Core 2\\comm[4],L=0,1};
+\draw (.5cm,-6.3cm) circle (.3cm) node {0};
+% Core 3
+\draw[align=left] (0,-6.9cm) rectangle (2cm,-8.4cm)
+node at (1cm, -7.1cm) (nodecore1) {Core 3\\comm[4],L=0,1};
+\draw (.5cm,-7.9cm) circle (.3cm) node {0};
+% NUMA 1
+\draw[align=left] (-.5cm,-4.65cm) rectangle (3cm,-8.5cm)
+node at (2cm,-4.85cm) (numa0) {NUMA 1\\comm[3],l=0,2};
+\draw (2.5cm,-6.3cm) circle (.3cm) node {0};
+\draw (2.5cm,-7.9cm) circle (.3cm) node {1};
+
+% socket 0
+\draw[align=left] (-0.75cm,0cm) rectangle (4cm, -8.6cm)
+node at (3cm,-.25cm) (socket0) {Socket 0\\comm[2],l=0};
+\draw (3.5cm,-2.25cm) circle (.3cm) node {0};
+\draw (3.5cm,-3.85cm) circle (.3cm) node {1};
+\draw (3.5cm,-6.3cm) circle (.3cm) node {2};
+\draw (3.5cm,-7.9cm) circle (.3cm) node {3};
+
+% Node 0
+\draw[align=left] (-0.85cm,.35cm) rectangle (5cm,-8.8cm)
+node at (4cm,.15cm) (node0) {Node 0\\comm[1],l=0,4};
+\draw (4.5cm,-2.25cm) circle (.3cm) node {0};
+\draw (4.5cm,-3.85cm) circle (.3cm) node {1};
+\draw (4.5cm,-6.3cm) circle (.3cm) node {2};
+\draw (4.5cm,-7.9cm) circle (.3cm) node {3};
+
+(Repeat for node 1)
+
+% Job (0)
+\end{tikzpicture}

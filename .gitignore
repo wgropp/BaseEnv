@@ -21,6 +21,7 @@
 *.a
 *.la
 *.lo
+.libs/
 
 # Shared objects (inc. Windows DLLs)
 *.dll
@@ -68,3 +69,15 @@ benvconf.h
 autom4te.cache/
 build-aux/
 stamp-h1
+
+# Programs
+src/dttest/dttest
+src/hwinfo/hwinfo
+src/iotest/pio
+src/mpiexamples/ctestinput
+src/mpiexamples/meshio
+src/mpivars/mpivars
+src/pingpong/pingpong
+src/pingpong/vectest
+src/smptest/smptest
+src/stress/netstress

@@ -1,0 +1,29 @@
+#!/bin/bash
+#SBATCH --mem=16g
+#SBATCH --nodes=4
+#SBATCH --ntasks-per-node=16  # 1 per core
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=cpu      # <- or one of: gpuA100x4 gpuA40x4 gpuA100x8 gpuMI100x8
+###SBATCH --reservation=no_scratch_requirements
+#SBATCH --account=bbka-delta-cpu
+#SBATCH --job-name=nodectest
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:20:00      # hh:mm:ss for the job
+### GPU options ###
+##SBATCH --gpus-per-node=0
+##SBATCH --gpu-bind=none     # <- or closest
+##SBATCH --mail-user=wgropp@illinois.edu
+##SBATCH --mail-type="BEGIN,END" # See sbatch or srun man pages for more email options
+
+module purge # drop modules and explicitly load the ones needed
+             # (good job metadata and reproducibility)
+module load gcc
+module load openmpi/4.1.6
+#module load mpich
+module load cuda
+module list  # job documentation and metadata
+echo "job is starting on `hostname`"
+export BENV_HWDESC_DEBUG=true
+export BENV_NODEINFO_DEBUG_SPLIT=true
+srun --unbuffered ./nodectest
+echo "all done"

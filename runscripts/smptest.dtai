@@ -1,0 +1,28 @@
+#!/bin/bash
+##SBATCH --mem=16g
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=288  # 1 per core (72 per Grace CPU)
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=ghx4
+#SBATCH --account=bbka-dtai-gh
+#SBATCH --job-name=smptest
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:20:00      # hh:mm:ss for the job
+### GPU options ###
+#SBATCH --gpus-per-node=4    # Reserve entire node
+##SBATCH --gpu-bind=none     # <- or closest
+
+module reset # use default
+module list  # job documentation and metadata
+echo "job is starting on `hostname`"
+# add --unbuffered to srun if -progress used with smptest
+# Use block:cyclic distribution to ensure that consecutive ranks on the
+# same node and within a node, consecutive ranks on different Grace CPUs
+# (Note that smptest will figure out if the processes are on the same
+# node, but relies on MPI features that might not be available for finer
+# grain distribution of processes to core.
+srun --distribution=block:cyclic --unbuffered ./smptest -ntrials 10 -ntest-info -ntest-wt 1000.0 -ntest-min 2 -pm -sizes 1:1100000\*2 -progress -nprocs 1:4,8:256\*2,288 -o smptest-data.txt > smptest-out.txt
+echo "starting olap test"
+# Note this test runs out of memory if all cores used. Only use up to 128 cores
+srun --distribution=block:cyclic --unbuffered ./smptest -nb -olap -olapsize 100 -ntrials 10 -ntest-info -ntest-wt 1000.0 -ntest-min 2 -pm -sizes 1:1100000\*2 -progress -nprocs 1:4,8:128\*2 -o smptest-olap-data.txt > smptest-olap-out.txt
+echo "all done"

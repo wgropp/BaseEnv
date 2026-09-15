@@ -1,0 +1,22 @@
+#!/bin/bash
+#SBATCH --mem=16g
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=128  # 1 per core
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=cpu      # <- or one of: gpuA100x4 gpuA40x4 gpuA100x8 gpuMI100x8
+#SBATCH --account=bbkf-delta-cpu
+#SBATCH --job-name=smptest
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:20:00      # hh:mm:ss for the job
+### GPU options ###
+##SBATCH --gpus-per-node=0
+##SBATCH --gpu-bind=none     # <- or closest
+
+module reset # use default
+module list  # job documentation and metadata
+echo "job is starting on `hostname`"
+# add --unbuffered to srun if -progress used with smptest
+srun --unbuffered ./smptest -ntrials 10 -ntest-info -ntest-wt 1000.0 -ntest-min 2 -pm -sizes 1:1100000\*2 -progress -nprocs 1:4,8:128\*2 -o smptest-data.txt > smptest-out.txt
+echo "starting olap test"
+srun --unbuffered ./smptest -nb -olap -olapsize 100 -ntrials 10 -ntest-info -ntest-wt 1000.0 -ntest-min 2 -pm -sizes 1:1100000\*2 -progress -nprocs 1:4,8:128\*2 -o smptest-olap-data.txt > smptest-olap-out.txt
+echo "all done"

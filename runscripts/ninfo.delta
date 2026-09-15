@@ -1,0 +1,27 @@
+#!/bin/bash
+#SBATCH --mem=16g
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=128  # 1 per core
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=cpu      # <- or one of: gpuA100x4 gpuA40x4 gpuA100x8 gpuMI100x8
+#SBATCH --account=bbkf-delta-cpu
+#SBATCH --job-name=ninfo
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:10:00      # hh:mm:ss for the job
+### GPU options ###
+##SBATCH --gpus-per-node=0
+##SBATCH --gpu-bind=none     # <- or closest
+
+module reset # use default
+module list  # job documentation and metadata
+echo "job is starting on `hostname`"
+export TOPO_SOCKETSPERNODE=2
+export TOPO_NUMASPERCHIP=4
+export TOPO_CORESPERCHIP=64
+# --unbuffered because all processes write detail information if not directed
+# into a file.
+srun --unbuffered ./ninfo -nsocket 2 -nnuma 4 -o ninfo-out.txt -od ninfodetail.txt > ninfo-stdout.txt 2>ninfo-stderr.txt
+echo "End of job"
+date
+
+

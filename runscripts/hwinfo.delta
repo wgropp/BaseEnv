@@ -1,0 +1,33 @@
+#!/bin/bash
+#SBATCH --mem=16g
+#SBATCH --nodes=6
+#SBATCH --ntasks-per-node=128  # 1 per core
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=cpu      # <- or one of: gpuA100x4 gpuA40x4 gpuA100x8 gpuMI100x8
+#SBATCH --account=bbkf-delta-cpu
+#SBATCH --job-name=hwinfo
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:10:00      # hh:mm:ss for the job
+### GPU options ###
+##SBATCH --gpus-per-node=0
+##SBATCH --gpu-bind=none     # <- or closest
+
+module reset # use default
+module list  # job documentation and metadata
+echo "job is starting on `hostname`"
+srun  ./hwinfo > hwinfo-out.txt
+echo "Run with debugging info enabled"
+export BENV_HWDESC_DEBUG=yes
+srun ./hwinfo -o hwinfo-dbg.txt >hwinfo-other.txt 2>hwinfo-err.txt
+echo "Run with cyclic placement by scheduler"
+# Note that without the --mpi=cray_shasta, the MPI_Init fails with PMI
+# error messages
+srun --distribution=cyclic --mpi=cray_shasta ./hwinfo -o hwinfo-cyc.txt >hwinfo-other-cyc.txt 2>hwinfo-cyc-err.txt
+# NOT YET IMPLEMENTED
+#echo "Run with scheduler policy specified"
+#export SLURM_ASSIGNMENT_POLICY="C:C"
+#srun --distribution=cyclic:cyclic ./hwinfo -o hwinfo-cycpolicy.txt >hwinfo-other-cycpolicy.txt 2>hwinfo-cycpolicy-err.txt
+echo "End of job"
+date
+
+

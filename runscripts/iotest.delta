@@ -1,0 +1,58 @@
+#!/bin/bash
+#SBATCH --mem=16g
+#SBATCH --nodes=4
+#SBATCH --ntasks-per-node=16   # not too many per core
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=cpu      # <- or one of: gpuA100x4 gpuA40x4 gpuA100x8 gpuMI100x8
+#SBATCH --account=bbka-delta-cpu
+#SBATCH --job-name=pio
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:20:00      # hh:mm:ss for the job
+### GPU options ###
+##SBATCH --gpus-per-node=0
+##SBATCH --gpu-bind=none     # <- or closest
+
+module reset # use default
+module list  # job documentation and metadata
+echo "job is starting on `hostname`"
+# dirs does not include the /tmp local to each node
+dirs=(/work/nvme/bbka/gropp/iotest /work/hdd/bbka/gropp/iotest /projects/bbka/gropp/iotest)
+set -x
+# Make sure all directories exist; if they exist, clean any old test files
+for dir in ${dirs[@]} ; do
+    if [ ! -d $dir ] ; then
+	mkdir -p $dir ;
+    else
+	rm -f $dir/piotmp*
+    fi
+done
+
+# This one is different because the /tmp is on the node only
+# Only run once per node
+srun -N 4 -n 4 --ntasks-per-node=1 mkdir -p /tmp/bbka/gropp/iotest
+
+# add --unbuffered to srun if -progress used with smptest
+# The -np argument is the number of processes PER NODE
+date
+# was -totsize 16Mi
+srun ./pio -np 1:16\*2 -blksize 1k:64k\*4 -totsize 2Mi -ntests 8 \
+    -leavefiles \
+    -path /work/nvme/bbka/gropp/iotest \
+    -path /work/hdd/bbka/gropp/iotest \
+    -path /tmp/bbka/gropp/iotest
+# Insufficient disk space for test in /projects
+#    -path /projects/bbka/gropp/iotest
+date
+# Read those files back
+srun ./pio -np 1:16\*2 -blksize 1k:64k\*4 -totsize 2Mi -ntests 8 \
+    -read -outname pioread.txt \
+    -path /work/nvme/bbka/gropp/iotest \
+    -path /work/hdd/bbka/gropp/iotest \
+    -path /tmp/bbka/gropp/iotest
+# Clean up all working files
+srun -N 4 -n 4 --ntasks-per-node=1 rm -rf /tmp/bbka/gropp
+# Only if not leavefiles
+#for dir in ${dirs[@]} ; do
+#    rm -f $dir/piotmp*
+#done
+echo "all done"

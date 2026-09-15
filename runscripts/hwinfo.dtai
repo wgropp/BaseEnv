@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH --mem=16g
+#SBATCH --nodes=2 # was 6
+#SBATCH --ntasks-per-node=32 # was 288=4*72  # 1 per core
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=ghx4
+#SBATCH --account=bbka-dtai-gh
+#SBATCH --job-name=hwinfo
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:10:00      # hh:mm:ss for the job
+### GPU options ###
+#SBATCH --gpus-per-node=1  # Must have one GPU
+#SBATCH --gpu-bind=none
+
+module reset # use default
+module list  # job documentation and metadata
+echo "job is starting on `hostname`"
+srun  ./hwinfo > hwinfo-out.txt
+echo "Run with debugging info enabled"
+export BENV_HWDESC_DEBUG=yes
+srun ./hwinfo -o hwinfo-dbg.txt >hwinfo-other.txt 2>hwinfo-err.txt
+echo "Run with cyclic placement by scheduler"
+srun --distribution=cyclic ./hwinfo -o hwinfo-cyc.txt >hwinfo-other-cyc.txt 2>hwinfo-cyc-err.txt
+echo "End of job"
+date

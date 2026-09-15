@@ -1,0 +1,21 @@
+#!/bin/bash
+##SBATCH --mem=16g
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=4 # 1 per socket
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=ghx4
+#SBATCH --account=bbka-dtai-gh
+#SBATCH --job-name=smptest4
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:05:00      # hh:mm:ss for the job
+### GPU options ###
+#SBATCH --gpus-per-node=4    # Reserve entire node
+##SBATCH --gpu-bind=none     # <- or closest
+
+module reset # use default
+module list  # job documentation and metadata
+echo "job is starting on `hostname`"
+# add --unbuffered to srun if -progress used with smptest
+# Hope that because there are 4 GPUs there will be one process per socket.
+srun --unbuffered ./smptest -ntrials 10 -ntest-info -ntest-wt 1000.0 -ntest-min 2 -pm -sizes 1:1100000\*2 -progress -nprocs 1:4 -o smptest4-data.txt > smptest4-out.txt
+echo "all done"

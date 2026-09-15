@@ -1,0 +1,18 @@
+#!/bin/bash
+#SBATCH --mem=1g             # memory per node
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1  # 1 per core
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=ghx4
+#SBATCH --account=bbka-dtai-gh
+#SBATCH --job-name=mpivars
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:10:00      # hh:mm:ss for the job
+### GPU options ###
+#SBATCH --gpus-per-node=1
+#SBATCH --gpu-bind=none     # <- or closest
+
+module reset # use default
+module list  # job documentation and metadata
+echo "job is starting on `hostname`"
+srun  ./mpivars > mpivars-out.txt

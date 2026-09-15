@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --mem=16g
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=1  # 1 per node
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=cpu
+#SBATCH --account=bbkf-delta-cpu
+#SBATCH --job-name=pingpong
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:05:00      # hh:mm:ss for the job
+
+module list  # job documentation and metadata
+echo "job is starting on `hostname`"
+srun ./pingpong -ntrials 20 -ntest-info -ntest-wt 1000.0 -ntest-min 2 -sizes 1:1100000\*2 -o pingpong-data.txt -pm > pingpong-out.txt
+

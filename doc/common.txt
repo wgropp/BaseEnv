@@ -1,0 +1,9 @@
+/*N returnvalue
+Return Value:
+Zero on success, non-zero otherwise.
+N*/
+
+/*N mpireturnvalue
+Return Value:
+'MPI_SUCCESS' on success, an MPI error code otherwise.
+N*/

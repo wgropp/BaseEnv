@@ -1,0 +1,23 @@
+#!/bin/bash
+#SBATCH --mem=16g
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=1  # 1 per node
+#SBATCH --cpus-per-task=1    # <- match to OMP_NUM_THREADS
+#SBATCH --partition=gpuA100x4      # <- or one of: cpu gpuA100x4 gpuA40x4 gpuA100x8 gpuMI100x8
+##SBATCH --reservation=no_projects_taiga_requirements
+#SBATCH --account=bbkf-delta-gpu
+#SBATCH --job-name=vectest
+# For debugging, only needs a short amount of time
+#SBATCH --time=00:05:00      # hh:mm:ss for the job
+### GPU options ###
+#SBATCH --gpus-per-node=1
+##SBATCH --gpu-bind=none     # <- or closest
+##SBATCH --mail-user=wgropp@illinois.edu
+##SBATCH --mail-type="BEGIN,END" # See sbatch or srun man pages for more email options
+
+module list  # job documentation and metadata
+module load nvhpc
+echo "job is starting on `hostname`"
+srun ./vectest -ntrials 20 -ntest-info -ntest-wt 1000.0 -ntest-min 2 -sizes 1:1100000\*2 -o vectest.txt -check -stride 32 > vectest-out.txt
+echo "Starting MPI from cuda memory test"
+srun ./vectest -ntrials 20 -ntest-info -ntest-wt 1000.0 -ntest-min 2 -sizes 1:1100000\*2 -memtype cuda -o vectest-cuda-data.txt -check -checkonhost -stride 32 > vectest-cuda-out.txt

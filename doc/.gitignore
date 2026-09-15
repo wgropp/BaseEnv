@@ -1,0 +1,11 @@
+# TeX intermediate files
+*.aux
+*.toc
+*.log
+
+# Output document
+benv.pdf
+
+# Generated doc files
+tex/routines/
+tex/progs/
