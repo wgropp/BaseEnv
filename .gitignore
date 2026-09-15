@@ -53,3 +53,18 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# build system intermediate files
+Makefile.in
+Makefile
+configure
+libtool
+aclocal.m4
+config.log
+config.status
+benvconf.h.in
+benvconf.h
+.deps/
+autom4te.cache/
+build-aux/
+stamp-h1

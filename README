@@ -1,0 +1,18 @@
+This is an update to baseenv that only includes the newest and cleanest
+codes. This include smptest (a newer version of nodecomm), a hardware
+hierarchy query, and a routines for a Cartesian process topology (a
+better MPI_Cart_create).
+
+All (visible) routines have a prefix of either MPIX (for routines that require
+MPI) or BENV (all others). To the extent possible, routines avoid requiring
+the use of MPI so that they can be used in other contexts and tested without
+a specific MPI environment.
+
+Internal but still visible (i.e., not declared static) routines have prefix
+MPIXi or BENVi.
+
+Naming convention:
+MPI-like routines, e.g., replacements for MPI_Cart_xxx, follow the same pattern,
+using underscores between words. E.g., MPIX_Nodecart_create
+
+Other routine use capital letters, e.g., BENV_HwdescGetDescGeneral
