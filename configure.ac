@@ -4,7 +4,7 @@ AC_CONFIG_SRCDIR([src])
 AC_CONFIG_MACRO_DIRS([confdb])
 AC_CONFIG_AUX_DIR([build-aux])
 
-AC_INIT([Benv],[0.1],[wgropp@illinois.edu],[benv],[wgropp.cs.illinois.edu/benv])
+AC_INIT([BaseEnv],[0.1],[wgropp@illinois.edu],[BaseEnv],[wgropp.cs.illinois.edu/BaseEnv])
 AM_INIT_AUTOMAKE
 
 # information on the package

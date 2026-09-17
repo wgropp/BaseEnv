@@ -55,12 +55,14 @@ dkms.conf
 # debug information files
 *.dwo
 
-# build system intermediate files
+# Automake and Autoconf generated files
 Makefile.in
-Makefile
 configure
-libtool
 aclocal.m4
+
+# build system intermediate files
+Makefile
+libtool
 config.log
 config.status
 benvconf.h.in
@@ -81,3 +83,15 @@ src/pingpong/pingpong
 src/pingpong/vectest
 src/smptest/smptest
 src/stress/netstress
+
+# Generated Documentation
+# See also doc/.gitignore
+www/
+man/
+
+# Miscellaneous
+# Editor backup files
+*~
+# Distribution files
+BaseEnv*.tgz
+BaseEnv*.tar.gz
