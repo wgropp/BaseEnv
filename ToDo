@@ -1,0 +1,8 @@
+ToDo for BaseEnv
+
+1. More testing is needed, and it needs to be easier
+2. Documentation needs to be completed
+3. mpiexamples is not done and may need a reset
+4. Device memory code for HIP and SCYL has not been tested
+5. Cartesian process topology code is incomplete and not yet ready
+6. Much better install instructions are needed
