@@ -582,8 +582,8 @@ void addnode(hwdescCtx *hwc)
     hwc->objinfo[0].nodenobj         = 1;
     hwc->objinfo[0].nodeobjidx       = 0;
     hwc->objinfo[0].kind             = BENV_HWDESC_NODE;
-//    hwc->objinfo[0].csrc            = 
-//   hwc->objinfo[0].asrc            =
+    hwc->objinfo[0].csrc             = BENV_HWDESC_CONFIG_GIVEN;
+    hwc->objinfo[0].asrc             = BENV_HWDESC_ASSIGN_GIVEN;
     hwc->objinfo[0].othersrc         = NULL;
     hwc->collinfo[0].objcomm         = MPI_COMM_WORLD;
     hwc->collinfo[0].nSiblings       = 1;
@@ -592,6 +592,7 @@ void addnode(hwdescCtx *hwc)
     hwc->collinfo[0].allsizeone      = 0;
     hwc->collinfo[0].descstr         = NULL;
     hwc->nlevel                      = 1;
+    hwc->source                      = 0;
 }
 
 /* determine the node socket/numa/core from the configuration. This is

@@ -25,12 +25,6 @@ CDBGEDECL(ARGV);
 CDBGEDECL(GETDESC);
 
 /* Add info to objinfo entry (collinfo is unchanged) */
-#if 0
-static void addnodeinfo(int nsocket, int nnuma, int ncore, hwdescCtx *hwc,
-			hwdescConfigSrc csrc);
-static void addnodeconfig(int nsocket, int nnuma, int ncore, hwdescCtx *hwc,
-			  hwdescConfigSrc csrc);
-#endif
 static void addnodeconfignew(int nodensock, int nodennuma, int nodencore,
 			     int nsock, int nnuma, int ncore,
 			     int rawnsock, int rawnnuma, int rawncore,
@@ -266,16 +260,9 @@ provided by hwloc.
   @*/
 int BENV_HwdescNodeConfigHwloc(void *context, hwdescCtx *hwc)
 {
-    int depth, nobj, rc=1;
+    int depth, nobj, rc=1, isset=0;
     int cpu = 0, hasAssignInfo=0;
     hwloc_obj_t obj, sockobj, coreobj, groupobj, numaobj;
-#if 0
-    int ncore=0, nnuma=0, nsocket=0;
-    /* Use these to keep track of the number of core or numa regions
-       with the same parent. trackingchild = -1 for none, 0 for core,
-       1 for numa */
-    int coretoparent=1, numatoparent=1, trackingchild=-1;
-#endif
     /* We need to keep track of number in parent and number on node.
        Number in parent is relative to the parent that is included
        in the hwdesc, and that might include multiple hwloc elements,
@@ -330,14 +317,14 @@ int BENV_HwdescNodeConfigHwloc(void *context, hwdescCtx *hwc)
 	      typename, obj->os_index, obj->logical_index, nsib, ncousin);
 
 	// TIXME: TEMP: REMOVE WHEN DEBUGGED
-	printf("Number of siblings =%d, cousins=%d, for object %s\n",
-	       nsib, ncousin, hwloc_obj_type_string(obj->type));
+	//printf("Number of siblings =%d, cousins=%d, for object %s\n",
+	//       nsib, ncousin, hwloc_obj_type_string(obj->type));
 	switch (obj->type) {
 	case HWLOC_OBJ_SOCKET: sockobj = obj;
 	    nsocket = nsib;
 	    if (!groupobj) ncore = ninparent;
 	    ninparent = 1;
-	    printf("in socket, ncore = %d, nsocket = %d\n", ncore, nsocket);
+	    //printf("in socket, ncore = %d, nsocket = %d\n", ncore, nsocket);
 	    //trackingchild = -1;
 	    break;
 	case HWLOC_OBJ_CORE: coreobj = obj;
@@ -349,7 +336,7 @@ int BENV_HwdescNodeConfigHwloc(void *context, hwdescCtx *hwc)
 	case HWLOC_OBJ_GROUP: groupobj = obj;
 	    ncore = ninparent;
 	    nnuma = nsib;
-	    printf("set ncore to %d and nnuma to %d\n", ncore, nnuma);
+	    //printf("set ncore to %d and nnuma to %d\n", ncore, nnuma);
 	    ninparent = nsib;
 	    //trackingchild = 1;
 	    break;
@@ -360,30 +347,35 @@ int BENV_HwdescNodeConfigHwloc(void *context, hwdescCtx *hwc)
 	obj = obj->parent;
     }
 
+    numaobj = 0;
     if (groupobj) {
 	/* Try to find NUMA region */
 	int gnum = hwloc_get_nbobjs_by_type(hwtopology, groupobj->type);
-	printf("Group count is %d\n", gnum);
+	//printf("Group count is %d\n", gnum);
     	numaobj = hwloc_get_obj_by_type(hwtopology, HWLOC_OBJ_NUMANODE,
 					groupobj->logical_index);
+#if 0
 	if (!numaobj) printf("Did not find numaobj from groupobj (%d)\n",
 			     groupobj->logical_index);
 	else {
 	    printf("NUMA os_index=%d\n", numaobj->os_index);
 	}
+#endif
     }
 
     /* The logical index is not (directly) related to the os index,
        so the logical number should not be used as an index for hwdesc */
     /* Add: raw, ralparent, relnode */
     if (sockobj) {
-//	BENVi_HwdescNodeHwlocCousinIdxCheck(sockobj);
+	// BENVi_HwdescNodeHwlocCousinIdxCheck(sockobj);
 	nobj = hwloc_get_nbobjs_by_type(hwtopology, sockobj->type);
+	isset=1;
 	if (hasAssignInfo) {
-	    /* Hoping that the os_index is relative to the node and
-	       in range */
+	    /* Note that the os_index is not necessarily the socket
+	       number (on DeltaAI, os_index was 2384 for a dual socket
+	       Grace-Grace node */
 	    addfullobj(hwc, BENV_HWDESC_SOCKET, sockobj->os_index, nobj,
-		       sockobj->os_index, nobj, sockobj->os_index, nobj,
+		       -1, nobj, -1, nobj,
 		       BENV_HWDESC_CONFIG_HWLOC, BENV_HWDESC_ASSIGN_HWLOC);
 	}
 	else {
@@ -396,25 +388,29 @@ int BENV_HwdescNodeConfigHwloc(void *context, hwdescCtx *hwc)
 	// BENVi_HwdescNodeHwlocCousinIdxCheck(numaobj);
 	/* NUMA is from NUMANODE, so number is relative to node, not socket */
 	nobj = hwloc_get_nbobjs_by_type(hwtopology, numaobj->type);
+	isset=1;
 	if (hasAssignInfo) {
 	    int pnuma = numaobj->os_index;
-	    if (nnuma > 0)
-		pnuma = pnuma % nnuma;
-	    else
+	    if (nnuma <= 0) {
 		printf("Unexpected values for nnuma=%d, nsocket=%d\n",
 		       nnuma, nsocket);
-	    printf("NUMA: nobj=%d, nnuma=%d\n",
-		   nobj, nnuma);
-	    addfullobj(hwc, BENV_HWDESC_NUMA, numaobj->os_index, nobj,
-		       pnuma, nnuma, numaobj->os_index, nobj,
-		       BENV_HWDESC_CONFIG_HWLOC, BENV_HWDESC_ASSIGN_HWLOC);
+		printf("type = %d(%s), ", numaobj->type,
+			hwloc_obj_type_string(numaobj->type));
+	    }
+	    else {
+		pnuma = pnuma % nnuma;
+		//printf("NUMA: nobj=%d, nnuma=%d\n", nobj, nnuma);
+		addfullobj(hwc, BENV_HWDESC_NUMA, numaobj->os_index, nobj,
+			   pnuma, nnuma, numaobj->os_index, nobj,
+			   BENV_HWDESC_CONFIG_HWLOC, BENV_HWDESC_ASSIGN_HWLOC);
+	    }
 	}
 	else {
 	    addfullobj(hwc, BENV_HWDESC_NUMA, -1, nobj,
 		       -1, nnuma, -1, nobj,
 		       BENV_HWDESC_CONFIG_HWLOC, BENV_HWDESC_ASSIGN_UNKNOWN);
 	}
-	printf("Setting numa in hwdesc with nobj=%d and nnuma=%d\n", nobj, nnuma);
+	//printf("Setting numa in hwdesc with nobj=%d and nnuma=%d\n", nobj, nnuma);
     }
     if (coreobj) {
 	/* hwloc doesn't provide an os_index over the node for core -
@@ -422,6 +418,7 @@ int BENV_HwdescNodeConfigHwloc(void *context, hwdescCtx *hwc)
 	// BENVi_HwdescNodeHwlocCousinIdxCheck(coreobj);
 	/* Core is relative to parent, which may be a NUMA group */
 	nobj = hwloc_get_nbobjs_by_type(hwtopology, coreobj->type);
+	isset=1;
 	/* nobj is almost certainly the same as nodencore */
 	if (hasAssignInfo) {
 	    /* Get cpu id relative to parent */
@@ -443,6 +440,14 @@ int BENV_HwdescNodeConfigHwloc(void *context, hwdescCtx *hwc)
 	    addfullobj(hwc, BENV_HWDESC_CORE, -1, nobj,
 		       -1, ncore, -1, nodencore,
 		       BENV_HWDESC_CONFIG_HWLOC, BENV_HWDESC_ASSIGN_UNKNOWN);
+	}
+    }
+    if (isset) {
+	if (hwc->source) {
+	    hwc->source = BENV_StringApp(hwc->source, 1, "; hwloc");
+	}
+	else {
+	    hwc->source = strdup("hwloc");
 	}
     }
     rc = 0;
@@ -918,13 +923,13 @@ int BENV_HwdescNodeInfoGetcpu(hwdescParms *parms, hwdescCtx *hwc)
 	    case BENV_HWDESC_NUMA:
 		hwc->objinfo[i].nodeobjidx = numanum;
 		hwc->objinfo[i].rawobjidx  = numanum;
-		hwc->objinfo[i].asrc = BENV_HWDESC_ASSIGN_GETCPU;
+		hwc->objinfo[i].asrc       = BENV_HWDESC_ASSIGN_GETCPU;
 		isset = 1;
 		break;
 	    case BENV_HWDESC_CORE:
 		hwc->objinfo[i].nodeobjidx = cpunum;
 		hwc->objinfo[i].rawobjidx  = cpunum;
-		hwc->objinfo[i].asrc = BENV_HWDESC_ASSIGN_GETCPU;
+		hwc->objinfo[i].asrc       = BENV_HWDESC_ASSIGN_GETCPU;
 		isset = 1;
 		break;
 	    default:
@@ -1135,12 +1140,7 @@ parms.nonnode=%d, parms.rank=%d, parms.nobjs=%d,%d,%d,%d\n",
 	case BENV_HWDESC_CORE:
 	    /* FIXME:!!! parns->nobjs[3] is ncore relative to WHAT?. This
 	       looks like cores/socket, rather than cores/NUMA */
-#if 0
-	    if (hwc->objinfo[i].nobj * nnuma != parms->nobjs[3])
-#else
-	    if (hwc->objinfo[i].nobj != parms->nobjs[3])
-#endif
-	    {
+	    if (hwc->objinfo[i].nobj != parms->nobjs[3]) {
 		fprintf(stderr, "Policy parms value for cores = %d, config = %d\n",
 			parms->nobjs[3], hwc->objinfo[i].nobj);
 	    }

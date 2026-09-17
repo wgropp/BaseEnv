@@ -1,12 +1,7 @@
 AM_CPPFLAGS = -I../../include
-if USE_OLD
-noinst_LTLIBRARIES = libbenvhwdesc.la
-libbenvhwdesc_la_SOURCES = hwdescutil.c nodeinfo.c hwdescimpl.h
-else
 noinst_LTLIBRARIES = libbenvhwdesc2.la
 libbenvhwdesc2_la_SOURCES = hwdescutil2.c hwdescarg.c mpixsplit.c \
 	hwdescparm.c hwdescprint.c nodeinfo2.c hwdescimpl2.h
-endif
 
 DIST_SUBDIRS = tests
 

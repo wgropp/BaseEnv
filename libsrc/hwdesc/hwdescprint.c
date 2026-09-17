@@ -67,7 +67,7 @@ int BENV_HwdescPrintAll(FILE *fp, MPI_Comm pcomm, hwdescCtx *hwc,
 	free((void *)sblock);
 	/* Only print source if there as something to print */
 	if (hwc->source) {
-	    fprintf(fp, "%s\n", hwc->source);
+	    fprintf(fp, "HWInfo from: %s\n", hwc->source);
 	}
 	fflush(fp);
     }
@@ -268,6 +268,7 @@ const char *BENV_HwdescAssignStr(hwdescAssignSrc asrc)
 	break;
     case BENV_HWDESC_ASSIGN_POLICY: result = "scheduler policy"; break;
     case BENV_HWDESC_ASSIGN_HWLOC: result = "hwloc"; break;
+    case BENV_HWDESC_ASSIGN_GIVEN: result = "user parameters"; break;
     default:
     }
     return result;
@@ -753,17 +754,12 @@ static int printmembers(FILE *fp, const int *match, int nmatch,
 			const int *idxvals, const int *maxidxs,
 			const hwdescKind *kind, int nlevels, int csize)
 {
-    int i, j, child, newmatch[MAX_LEVELS];
+    int i, j, nlen, child, newmatch[MAX_LEVELS];
     intarrayPtr iarr;
     intlistPtr  ilst;
     const char *istr;
 
-    /* Print the object, indented based on level */
-    for (i=0; i<nmatch-1; i++) fputc(' ', fp);
-    fprintf(fp, "%s %d: ", BENV_HwdescKindStr(kind[nmatch-1]), match[nmatch-1]);
-
     /* Check all processes for a match to this object */
-    /* FIXME: Change this to collect the matches and output when done */
     iarr = BENV_UtilCreateIntArray(csize);
     for (i=0; i<csize; i++) {
 	for (j=0; j<nmatch; j++) {
@@ -772,10 +768,21 @@ static int printmembers(FILE *fp, const int *match, int nmatch,
 	if (j == nmatch) BENV_UtilAppendIntArray(iarr, i);
 	/*fprintf(fp, "%d,", i);*/
     }
+    /* Does this object have any matches? If not, we don't print anything
+       and return without descending into children (there can't be any) */
+    nlen = BENV_UtilIntArrayLen(iarr);
+    if (nlen == 0) {
+	BENV_UtilFreeIntArray(iarr);
+	CDBGFCALLEXIT;
+	return 0;
+    }
+
     ilst = BENV_UtilIntArrayToIntList(iarr);
     istr = BENV_UtilIntListToStr(ilst);
-    fputs(istr, fp);
-    fputc('\n', fp);
+    /* Print the object, indented based on level */
+    for (i=0; i<nmatch-1; i++) fputc(' ', fp);
+    fprintf(fp, "%s %d: %s\n", BENV_HwdescKindStr(kind[nmatch-1]),
+	    match[nmatch-1], istr);
     /* Flush to avoid possible problems with process-labeled output with,
        for example, mpiexec -l */
     fflush(fp);

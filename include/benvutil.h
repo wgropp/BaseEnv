@@ -95,6 +95,7 @@ intarrayPtr BENV_UtilCreateIntArray(int nalloc);
 int BENV_UtilAppendIntArray(intarrayPtr iarr, int val);
 intlistPtr BENV_UtilIntArrayToIntList(intarrayPtr iarr);
 void BENV_UtilFreeIntArray(intarrayPtr iarr);
+int BENV_UtilIntArrayLen(intarrayPtr iarr);
 
 
 #endif

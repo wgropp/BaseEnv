@@ -7,11 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "mpi.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#else
 #include "hwdescnew.h"
-#endif
 #include "seq.h"
 #include "benvutil.h"
 #include "benvmpiutil.h"
@@ -53,13 +49,8 @@ int main(int argc, char *argv[])
     int outperrank=0;
     char *outName = 0;
     FILE *outfp;
-#ifdef USE_OLD
-    hwdescCtx_t *hwc=0;
-    hwdescParms_t parms;
-#else
     hwdescCtx *hwc=0;
     hwdescParms parms;
-#endif
 
     MPI_Init_thread(&argc, &argv, MPI_THREAD_SINGLE, &provided);
     MPI_Comm_rank(MPI_COMM_WORLD, &wrank);
@@ -140,7 +131,8 @@ int main(int argc, char *argv[])
     }
 
     /* Try all methods to get the hw info */
-    BENV_HwdescGetDescGeneral(MPI_COMM_WORLD, BENV_HWDESC_USE_ALL, &parms, &hwc);
+    BENV_HwdescGetDescGeneral(MPI_COMM_WORLD, BENV_HWDESC_USE_ALL, &parms,
+			      &hwc);
 
 #if 0
     {
@@ -167,11 +159,7 @@ int main(int argc, char *argv[])
 	fname = BENV_PerRankFilename("hwdesc-out-%d.txt", MPI_COMM_WORLD);
 	fp = fopen(fname, "w");
 	fprintf(fp, "PrintArray for %d\n", wrank);
-#ifdef USE_OLD
-	BENV_HwdescPrintCtxLocal(fp, hwc, "Array");
-#else
-	BENV_HwdescPrintLocal(outfp, hwc, "Array");
-#endif
+	BENV_HwdescPrintLocal(fp, hwc, "Array");
 	{
 #define MAX_LEVEL 5
 	    int coords[MAX_LEVEL], sizes[MAX_LEVEL], nlevels;
@@ -198,11 +186,7 @@ int main(int argc, char *argv[])
 
     if (verbose) {
 	BENV_SeqBegin(MPI_COMM_WORLD);
-#ifdef USE_OLD
-	BENV_HwdescPrintCtxLocal(outfp, hwc, "");
-#else
 	BENV_HwdescPrintLocal(outfp, hwc, "");
-#endif
 	BENV_SeqEnd(MPI_COMM_WORLD);
     }
 

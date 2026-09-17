@@ -215,6 +215,8 @@ char *BENV_UtilIntListToStr(intlistPtr lst)
     /* Allocate string */
     str = (char *)malloc((slen+1)*sizeof(char));
     if (!str) { return 0; };
+    /* Ensure the empty string (slen == 0) has a null terminator */
+    *str = 0;
 
     /* Convert int list into a string */
     p      = str;
@@ -521,4 +523,18 @@ void BENV_UtilFreeIntArray(intarrayPtr iarr)
 {
     if (iarr->vals) free(iarr->vals);
     free(iarr);
+}
+
+/*@
+  BENV_UtilIntArrayLen - Return the number of elements in an integer array
+
+Input Parameter:
+. iarr - int array created with 'BENV_UtilCreateIntArray'
+
+Return Value:
+Number of elements in the integer array.
+  @*/
+int BENV_UtilIntArrayLen(intarrayPtr iarr)
+{
+    return iarr->nlen;
 }
