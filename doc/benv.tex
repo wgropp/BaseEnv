@@ -198,17 +198,29 @@ the call.
 Refer to the documentation for you system about affinities and other
 scheduling policies.
 
+In addition, the configuration may represent all of the resources, or
+only those available to the program.
+Which it is depends on the routines available to acquire information
+as well as other implementation choices.
+
 Base Env represents the hardware as a hierarchy.
 A parallel job is effectively a tree, with the root being all of the
 processes in the job on a parallel computer.
 Levels in the heirarchy may include nodes, sockets (processor chips),
 NUMA regions, and cores.
 
+Further, Base Env represents this with two separate hierarchies: one
+based solely on the hardware and one built around MPI processes and
+communicators.
+
 \begin{figure}
 \begin{center}
 \input{hwdesc.tikz}
 \end{center}
-\caption{}
+\caption{An example configuration with one node, one socket, two NUMA
+  regions, each with two cores. The circles denote MPI ranks, relative
+to the communicator in the smallest containing box. Circles along the
+same horizontal line are in the same MPI process.}
 \label{fig:hwdesc}
 \end{figure}
 
@@ -346,6 +358,11 @@ complete, runnable example.
 	  Coordinate tuple
 \item  Free the description with BENV\_HwdescFreeCtx
 \end{enumerate}
+
+ToDo: Add examples about forcing a particular configuration and/or
+assignment, e.g., with \texttt{-numnodes 4 -numsockets 2 -forcedebug}
+
+ToDo: Summarize the test programs, as they are also examples
 
 \chapter{Benchmarking}
 Base Env contains both routines to make it easier to write benchmarks as well
