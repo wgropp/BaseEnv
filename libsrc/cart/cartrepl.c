@@ -9,13 +9,12 @@
 #include <stdio.h>
 #include "mpi.h"
 #include "benvutil.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#else
+#include "benvdbg.h"
 #include "hwdescnew.h"
-#endif
 #include "cartrepl.h"
 #include "cartimplm.h"
+
+CDBGFCALLDECL;
 
 /* This file contains routines to provide replacements for the MPI cartesian
    process topology routines, except for Cart_create.
@@ -77,6 +76,7 @@ int MPIX_Nodecart_shift(MPI_Comm comm, int direction, int disp,
     int    rank, flag;
     cart_t *cinfo;
 
+    CDBGFCALLENTER;
     MPI_Comm_rank(comm, &rank);
 
     MPI_Comm_get_attr(comm, cartKeyval, &cinfo, &flag);
@@ -95,6 +95,7 @@ int MPIX_Nodecart_shift(MPI_Comm comm, int direction, int disp,
 	fflush(vfp);
     }
 
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }
 
@@ -116,6 +117,7 @@ int MPIX_Nodecart_coords(MPI_Comm comm, int rank, int maxdims, int coords[])
     int        flag;
     cart_t *cinfo;
 
+    CDBGFCALLENTER;
     MPI_Comm_get_attr(comm, cartKeyval, &cinfo, &flag);
     if (!cinfo || !flag) {
 	BENVi_ErrAttr("cartKeyval");
@@ -123,6 +125,7 @@ int MPIX_Nodecart_coords(MPI_Comm comm, int rank, int maxdims, int coords[])
 
     BENVi_RankToCoords(cinfo->ndim, cinfo->dims, rank, BENV_ORDER_C, coords);
 
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }
 
@@ -147,6 +150,7 @@ int MPIX_Nodecart_rank(MPI_Comm comm, const int coords[], int *rank)
     int        flag;
     cart_t *cinfo;
 
+    CDBGFCALLENTER;
     MPI_Comm_get_attr(comm, cartKeyval, &cinfo, &flag);
     if (!cinfo || !flag) {
 	BENVi_ErrAttr("cartKeyval");
@@ -154,6 +158,7 @@ int MPIX_Nodecart_rank(MPI_Comm comm, const int coords[], int *rank)
 
     BENVi_CoordsToRank(cinfo->ndim, cinfo->dims, coords, BENV_ORDER_C, rank);
 
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }
 
@@ -190,6 +195,7 @@ int MPIX_Nodecart_sub(MPI_Comm comm, const int remain[], MPI_Comm *subcomm)
     cartHierarchy *carth;
     int        *ndims, *ncoords, *nperiodic;
 
+    CDBGFCALLENTER;
     /* Algorithm: Using the coordinates where remain == FALSE, compute a
        rank using the coords to rank.  Perform comm_split using that
        rank as the color, and the original rank as rank.
@@ -224,6 +230,11 @@ int MPIX_Nodecart_sub(MPI_Comm comm, const int remain[], MPI_Comm *subcomm)
 	}
     }
 
+    /* Reality check */
+    if (newdims == 0) {
+	printf("FIXME: point communicator (newdims==0)\n");
+	fflush(stdout);
+    }
     /* Create the subcommunicator */
     MPI_Comm_rank(comm, &inrank);
     MPI_Comm_split(comm, color, inrank, subcomm);
@@ -249,6 +260,11 @@ int MPIX_Nodecart_sub(MPI_Comm comm, const int remain[], MPI_Comm *subcomm)
 	if (remain[i]) {
 	    int nl;
 	    ndims[k]        = cinfo->dims[i];
+	    // tmp
+	    if (cinfo->dims[i] == 0) {
+		printf("Panic: cinfo->dims[%d] = 0!\n", i);
+		fflush(stdout);
+	    }
 	    ncoords[k]      = cinfo->coords[i];
 	    nperiodic[k]    = cinfo->periodic[i];
 	    for (nl=0; nl<cinfo->carth->nlevels; nl++) {
@@ -263,6 +279,7 @@ int MPIX_Nodecart_sub(MPI_Comm comm, const int remain[], MPI_Comm *subcomm)
 			      carth);
     free(ndims);
 
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }
 
@@ -281,11 +298,13 @@ int MPIX_Nodecart_dim_get(MPI_Comm comm, int *ndims)
     int        flag;
     cart_t *cinfo;
 
+    CDBGFCALLENTER;
     MPI_Comm_get_attr(comm, cartKeyval, &cinfo, &flag);
     if (!cinfo || !flag) {
 	BENVi_ErrAttr("cartKeyval");
     }
     *ndims = cinfo->ndim;
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }
 
@@ -311,6 +330,8 @@ int MPIX_Nodecart_get(MPI_Comm comm, int maxdims, int dims[], int periods[],
     int        flag, i;
     cart_t *cinfo;
 
+    CDBGFCALLENTER;
+
     MPI_Comm_get_attr(comm, cartKeyval, &cinfo, &flag);
     if (!cinfo || !flag) {
 	BENVi_ErrAttr("cartKeyval");
@@ -327,6 +348,8 @@ int MPIX_Nodecart_get(MPI_Comm comm, int maxdims, int dims[], int periods[],
 	periods[i] = cinfo->periodic[i];
 	coords[i]  = cinfo->coords[i];
     }
+
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }
 
@@ -347,6 +370,8 @@ int MPIXI_NodecartSetTopoInfo(MPI_Comm comm, int ndim,
     cart_t *cinfo;
     int i;
 
+    CDBGFCALLENTERV("ndim=%d,dims[0]=%d,coords[0]=%d,periodic[0]=%d\n",
+		    ndim,dims[0],coords[0],periodic[0]);
     cinfo = (cart_t *)malloc(sizeof(cart_t));
     if (!cinfo) {
 	fprintf(stderr, "Unable to allocate memory for cart_t\n");
@@ -367,6 +392,7 @@ int MPIXI_NodecartSetTopoInfo(MPI_Comm comm, int ndim,
     }
     MPI_Comm_set_attr(comm, cartKeyval, cinfo);
 
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }
 
@@ -407,6 +433,8 @@ static void rankShift(int ndims, const int dims[], const int coords[],
     int rfrom, rto;
     int offset, i;
 
+    CDBGFCALLENTERV("ndims=%d,order=%d,rank=%d,direction=%d,disp=%d\n",
+		    ndims, order, rank, direction, disp);
     offset = 1;
     if (order == MPI_ORDER_C) {
 	for (i=direction+1; i<ndims; i++) offset *= dims[i];
@@ -419,6 +447,9 @@ static void rankShift(int ndims, const int dims[], const int coords[],
 
     rfrom = -disp;
     rto   = disp;
+//    printf("TMP:rto=%d, rfrom=%d, periodic[%d]=%d, coords[%d]=%d, dims[%d]=%d\n",
+//	   rto, rfrom, direction, periodic[direction],
+//	   direction, coords[direction], direction, dims[direction]);
     if (periodic[direction]) {
 	/* Allow disp to be negative, so must make both in the range
 	   [0,dims[direction]-1] */
@@ -433,6 +464,7 @@ static void rankShift(int ndims, const int dims[], const int coords[],
 	    rfrom =  MPI_PROC_NULL;
 	else
 	    rfrom = rank + rfrom * offset;
+
 	if (rto + coords[direction] < 0 ||
 	    rto + coords[direction] >= dims[direction])
 	    rto = MPI_PROC_NULL;
@@ -441,4 +473,5 @@ static void rankShift(int ndims, const int dims[], const int coords[],
     }
     *rsource = rfrom;
     *rdest   = rto;
+    CDBGFCALLEXITV("Returning rsource=%d, rdest=%d\n", rfrom, rto);
 }

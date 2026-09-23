@@ -9,11 +9,7 @@
 #include "benvconf.h"
 #include <stdio.h>
 #include "mpi.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#else
 #include "hwdescnew.h"
-#endif
 #include "cartrepl.h"
 #include "ncartshim.h"
 

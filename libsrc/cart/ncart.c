@@ -10,13 +10,13 @@
 
 #include "mpi.h"
 #include "benvdbg.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#else
+#include "benvutil.h"
 #include "hwdescnew.h"
-#endif
 #include "cartrepl.h"
 #include "cartimplm.h"
+
+//TEMP
+#include "seq.h"
 
 #define PRIVATE static
 /*
@@ -42,28 +42,15 @@ typedef struct {
 		       level of the calling process (e.g., node number) */
 } lev_t;
 
-static int hwinfoDelFn(MPI_Comm comm, int keyval, void *attr, void *estate);
-static int hwinfoKeyval = MPI_KEYVAL_INVALID;
 static int checkConsistentLevels(MPI_Comm comm, lev_t *levs);
-#ifdef USE_OLD
-static lev_t *getLevelSizes(const hwdesc_t hw[], int nlevels);
-#else
 static lev_t *getLevelSizes(const hwdescCtx *hwc);
-#endif
 
 static void freeLevelSizes(lev_t *levs);
 
-#ifdef USE_OLD
-/* Type for hwdesc information, stored as an attribute on the communicator
-   for which hwdesc was created */
-typedef struct {
-    hwdesc_t *hwdesc;
-    int      nlevels;
-} hwinfo_t;
-#endif
-
 /* Debugging */
 CDBGDECL(NODECART);
+CDBGEDECL(ARGV);
+CDBGFCALLDECL;
 
 PRIVATE int dimsBalance(int ndims, const int olddims[], const int dims[]);
 PRIVATE int pickOrder(int ndims, int startidx, const int olddims[], int dims[]);
@@ -129,69 +116,30 @@ int MPIX_Nodecart_create(MPI_Comm comm_old, int ndims, const int dims[],
 			 const int periods[], int reorder,
 			 MPI_Comm *comm_cart)
 {
-#ifdef USE_OLD
-    hwdesc_t *hwdesc=0;
-    int      nlevels=0;
-#else
     hwdescCtx *hwdesc=0;
-#endif
     int      rc, newrank;
     int      *cartcoords=0;
     cartHierarchy *carth;
+    int      newdims[MAX_DIMS];
 
+    CDBGFCALLENTER;
     if (!reorder) {
 	/* Simply add the topology information, using the existing
 	   ranks of the processes */
 	/* FIXME: Given rank of process, set the attributes */
+	CDBGFCALLEXIT;
 	return MPI_SUCCESS;
     }
 
     /* Get the node hierarchy from the communicator, or if not available,
        create it and attach it as an attribute */
-    if (hwinfoKeyval != MPI_KEYVAL_INVALID) {
-	int        flag;
-#ifdef USE_OLD
-	hwinfo_t   *hwinfo;
-#else
-	hwdescCtx *hwinfo;
-#endif
-	MPI_Comm_get_attr(comm_old, hwinfoKeyval, &hwinfo, &flag);
-#ifdef USE_OLD
-	if (flag) {
-	    hwdesc      = hwinfo->hwdesc;
-	    nlevels     = hwinfo->nlevels;
-	}
-#else
-	hwdesc = hwinfo;
-#endif
-    }
-    else {
-	/* Create the hwinfo keyval. We'll set it in the step below */
-	MPI_Comm_create_keyval(MPI_COMM_NULL_COPY_FN, hwinfoDelFn,
-			       &hwinfoKeyval, NULL);
-    }
+    rc = BENV_HwdescGetDescFromComm(comm_old, &hwdesc);
     if (!hwdesc) {
-#if 0
-	hwdesc_t *hwinfo;
-	int maxdepth=10, depth;
-	BENV_HwdescGetLocal(comm_old, hwdesc, maxdepth, &depth);
-	hwinfo = (hwinfo_t *)malloc(sizeof(hwinfo_t));
-	hwinfo->hwdesc  = hwdesc;
-	hwinfo->nlevels = depth;
-        nlevels         = depth;
-#else
-#ifdef USE_OLD
-	hwdescCtx_t *hwc;
-	BENV_HwdescGetDescGeneral(comm_old, BENV_HWDESC_USE_ALL, 0, &hwc);
-	nlevels         = hwc->hwlevel;
-#else
-	hwdescCtx *hwc;
-	BENV_HwdescGetDescGeneral(comm_old, BENV_HWDESC_USE_ALL, 0, &hwc);
+	// This won't work: Requires a non-null parms
+	BENV_HwdescGetDescGeneral(comm_old, BENV_HWDESC_USE_ALL, 0, &hwdesc);
 //	nlevels         = hwc->nlevel;
-#endif
-#endif
 	CDBG(NODECART,ALL,"About to save hwinfo on old comm");
-	MPI_Comm_set_attr(comm_old, hwinfoKeyval, hwc);
+	BENV_HwdescSaveDescToComm(hwdesc, comm_old);
 	CDBG(NODECART,ALL,"...Done saving hwinfo on old comm");
     }
 
@@ -203,18 +151,15 @@ int MPIX_Nodecart_create(MPI_Comm comm_old, int ndims, const int dims[],
     /* Create the node cart from the hierarchy */
     cartcoords = (int *)malloc(ndims*sizeof(int));
     *comm_cart = 0;  /* DEBUGGING */
-    rc = MPIX_Nodecart_create_from_hierarchy(comm_old,
-#ifdef USE_OLD
-					     hwdesc, nlevels,
-#else
-					     hwdesc,
-#endif
-					     ndims, (int *)dims, periods,
+    for (int i=0; i<ndims; i++) newdims[i] = dims[i];
+    rc = MPIX_Nodecart_create_from_hierarchy(comm_old, hwdesc,
+					     ndims, newdims, periods,
 					     cartcoords, &newrank, &carth);
     CDBGV(NODECART,DETAIL,"Created nodecart info, rc=%d\n", rc);
 
     /* Call the appropriate error handler if rc != MPI_SUCCESS */
     if (rc != MPI_SUCCESS) {
+	CDBGFCALLEXIT;
 	return rc;
     }
     CDBGV(NODECART,ALL,"topo info %p\n", carth);
@@ -223,17 +168,18 @@ int MPIX_Nodecart_create(MPI_Comm comm_old, int ndims, const int dims[],
 
     /* Add topology information to comm_cart */
     CDBG(NODECART,ALL,"About to save topo info on new comm");
-    MPIXI_NodecartSetTopoInfo(*comm_cart, ndims, dims, cartcoords,
+    MPIXI_NodecartSetTopoInfo(*comm_cart, ndims, newdims, cartcoords,
 			      periods, carth);
     CDBG(NODECART,ALL,"Done saving topo info on new comm");
 
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }
 /* THIS ONE USES THE NEWER HWDESC */
 
 /* FIXME: SHOULD THIS USE THE CARTRANK IMPLEMENTATION (WHICH IS INDEPENDENT
    OF MPI AND DOES NOT REQUIRE PARALLEL PROCESSES */
-#ifdef USE_OLD
+
 /*@
  MPIX_Nodecart_create_from_hierarchy - Generate a Cartesian
  decomposition of processes using a hierarchy description
@@ -268,86 +214,6 @@ dimensions.
 The only collective part of this routine is a check on consistency
 across all processes in 'comm'.
 @*/
-int MPIX_Nodecart_create_from_hierarchy(MPI_Comm comm,
-					const hwdesc_t hwdesc[], int nlevels,
-					int ndims, int dims[],
-					const int periods[],
-					int cartcoords[], int *newrank,
-					struct cartHierarchy **carth_ptr)
-{
-    cartHierarchy *carth;
-    int olddims[MAX_DIMS];
-    int lev, i;
-    lev_t *levs;
-
-    /* FIXME: It might be better to have a separate, fully local routine
-       for determining the decompostion, given an array of levels */
-    /* Extract from hwdesc an array of the number of "objects" (e.g.,
-       nodes, sockets, numa regions) at each of nsizes levels */
-    levs = getLevelSizes(hwdesc, nlevels);
-    /* Check for uniformity across processes and for nsizes > 0 */
-    if (checkConsistentLevels(comm, levs) != MPI_SUCCESS) {
-	return MPI_ERR_OTHER;
-    }
-
-    carth     = (cartHierarchy *)malloc(sizeof(cartHierarchy));
-    carth->cl = (cartLevel *)malloc(levs->nlevs * sizeof(cartLevel));
-    carth->nlevels = levs->nlevs;
-    carth->ndims   = ndims;
-    for (i=0; i<ndims; i++) olddims[i] = 1;
-    for (lev=0; lev<levs->nlevs; lev++) {
-	for (i=0; i<ndims; i++) carth->cl[lev].dims[i] = 0;
-	/* Factor the size, pick a "nice" decomposition */
-	/* FIXME: Do not rely on Dims_create (but also allow it) */
-	MPI_Dims_create(levs->nobj[lev], ndims, carth->cl[lev].dims);
-	CDBGV(NODECART,BASIC,"\tLevel %d: decomp from (%d) to (%d,%d)\n",
-		    lev, levs->nobj[lev], carth->cl[lev].dims[0],
-		    carth->cl[lev].dims[1]);
-
-	/* Reorder dimensions to approximate balance */
-	pickOrder(ndims, 0, olddims, carth->cl[lev].dims);
-	for (i=0; i<ndims; i++) olddims[i] *= carth->cl[lev].dims[i];
-
-	/* Determine the coords of this process in the Cartesian grid
-	   at this level */
-	BENVi_RankToCoords(ndims, carth->cl[lev].dims, levs->objidx[lev],
-			   BENV_ORDER_C, carth->cl[lev].coords);
-	CDBGV(NODECART,BASIC,"\tLevel %d\tComputed (%d,%d) in (%d,%d)\n",
-		 lev, carth->cl[lev].coords[0], carth->cl[lev].coords[1],
-		 carth->cl[lev].dims[0], carth->cl[lev].dims[1]);
-    }
-    /* Combine dimensions and coordinates across the levels to get the
-       overall representation */
-    /* FIXME: Only correct for all values <= 0 */
-    /* To handle constraints on dims, need to save all sizes and their
-       factors, and extract values to match.  See the implementation
-       of MPI_Dims_create (at least my implementation for mpich) */
-    for (i=0; i<ndims; i++) {
-	olddims[i]    = carth->cl[0].dims[i];
-	cartcoords[i] = carth->cl[0].coords[i];
-    }
-    for (lev=1; lev<levs->nlevs; lev++) {
-	for (i=0; i<ndims; i++) {
-	    olddims[i] *= carth->cl[lev].dims[i];
-	    cartcoords[i] = carth->cl[lev].coords[i] +
-		carth->cl[lev].dims[i] * cartcoords[i];
-	}
-    }
-    /* Convert coords into an overall rank */
-    /* DIFFERENCE: Forces order == MPI_ORDER_C. But only use picks this
-       order */
-    BENVi_CoordsToRank(ndims, olddims, cartcoords, BENV_ORDER_C, newrank);
-    if (carth_ptr) {
-	*carth_ptr = carth;
-    }
-    else {
-	free(carth);
-    }
-    freeLevelSizes(levs);
-
-    return MPI_SUCCESS;
-}
-#else
 int MPIX_Nodecart_create_from_hierarchy(MPI_Comm comm, const hwdescCtx *hwc,
 					int ndims, int dims[],
 					const int periods[],
@@ -355,10 +221,13 @@ int MPIX_Nodecart_create_from_hierarchy(MPI_Comm comm, const hwdescCtx *hwc,
 					struct cartHierarchy **carth_ptr)
 {
     cartHierarchy *carth;
-    int olddims[MAX_DIMS];
+    int olddims[MAX_DIMS];     /* Used to save the dimensions determined so
+				  far. At the end, the final dimensions of
+			          the Cartesian mesh */
     int lev, i;
     lev_t *levs;
 
+    CDBGFCALLENTER;
     /* FIXME: It might be better to have a separate, fully local routine
        for determining the decompostion, given an array of levels */
     /* Extract from hwdesc an array of the number of "objects" (e.g.,
@@ -367,9 +236,21 @@ int MPIX_Nodecart_create_from_hierarchy(MPI_Comm comm, const hwdescCtx *hwc,
     levs = getLevelSizes(hwc);
     /* Check for uniformity across processes and for nsizes > 0 */
     if (checkConsistentLevels(comm, levs) != MPI_SUCCESS) {
+	CDBGFCALLEXIT;
 	return MPI_ERR_OTHER;
     }
-
+#if 0
+    /* TMP: print out the level sizes */
+    printf("Number of levels = %d\n", levs->nlevs);
+    BENV_SeqBegin(comm);
+    for (int j=0; j<levs->nlevs; j++) {
+	printf("\tLevel %d: nobjs=%d, my idx=%d\n", j, levs->nobj[j],
+	       levs->objidx[j]);
+    }
+    fflush(stdout);
+    BENV_SeqEnd(comm);
+    /* TMP ends here */
+#endif
     carth     = (cartHierarchy *)malloc(sizeof(cartHierarchy));
     carth->cl = (cartLevel *)malloc(levs->nlevs * sizeof(cartLevel));
     carth->nlevels = levs->nlevs;
@@ -380,7 +261,7 @@ int MPIX_Nodecart_create_from_hierarchy(MPI_Comm comm, const hwdescCtx *hwc,
 	/* Factor the size, pick a "nice" decomposition */
 	/* FIXME: Do not rely on Dims_create (but also allow it) */
 	MPI_Dims_create(levs->nobj[lev], ndims, carth->cl[lev].dims);
-	CDBGV(NODECART,BASIC,"\tLevel %d: decomp from (%d) to (%d,%d)\n",
+	CDBGV(NODECART,BASIC,"\tLevel %d: (2donly)decomp from nobjs=%d to (%d,%d)\n",
 		    lev, levs->nobj[lev], carth->cl[lev].dims[0],
 		    carth->cl[lev].dims[1]);
 
@@ -392,9 +273,10 @@ int MPIX_Nodecart_create_from_hierarchy(MPI_Comm comm, const hwdescCtx *hwc,
 	   at this level */
 	BENVi_RankToCoords(ndims, carth->cl[lev].dims, levs->objidx[lev],
 			   BENV_ORDER_C, carth->cl[lev].coords);
-	CDBGV(NODECART,BASIC,"\tLevel %d\tComputed (%d,%d) in (%d,%d)\n",
+	CDBGV(NODECART,BASIC,"\tLevel %d: (2donly)Computed coords (%d,%d) in (%d,%d) from objidx=%d\n",
 		 lev, carth->cl[lev].coords[0], carth->cl[lev].coords[1],
-		 carth->cl[lev].dims[0], carth->cl[lev].dims[1]);
+	      carth->cl[lev].dims[0], carth->cl[lev].dims[1],
+	    levs->objidx[lev]);
     }
     /* Combine dimensions and coordinates across the levels to get the
        overall representation */
@@ -423,12 +305,14 @@ int MPIX_Nodecart_create_from_hierarchy(MPI_Comm comm, const hwdescCtx *hwc,
     else {
 	free(carth);
     }
+    /* Save the overall dimensions */
+    for (i=0; i<ndims; i++) dims[i] = olddims[i];
+
     freeLevelSizes(levs);
 
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }
-#endif
-
 
 /* ------------------------------------------------------------------------ */
 /* Compute the balance in an array of dimensions, defined as the difference
@@ -488,22 +372,6 @@ PRIVATE int pickOrder(int ndims, int startidx, const int olddims[], int dims[])
     return curscore;
 }
 
-/* Attribute functions */
-static int hwinfoDelFn(MPI_Comm comm, int keyval, void *attr, void *estate)
-{
-#ifdef USE_OLD
-    hwinfo_t *hwinfo = (hwinfo_t *)attr;
-
-    if (!hwinfo) return MPI_ERR_OTHER;
-    free(hwinfo->hwdesc);
-    free(hwinfo);
-#else
-    /* Check that we really do not need to free the pointer */
-#endif
-
-    return 0;
-}
-
 /* Next on the todo list
    1. the node information (local)
    2. the node information (collective and consistant)
@@ -520,47 +388,17 @@ static int hwinfoDelFn(MPI_Comm comm, int keyval, void *attr, void *estate)
   parallel machine (level 0) but could also be a single socket on a node.
 
   This is a local routine.
-  The array retunned in "sizes" is allocated with malloc and must be freed
+  The array returned is allocated with malloc and must be freed
   when no longer needed.
  */
-#ifdef USE_OLD
-static lev_t *getLevelSizes(const hwdesc_t hw[], int nlevels)
-{
-    int lev, k, nsizes, np;
-    lev_t *levptr;
+/*
+  Fixme:
+  This should return information from the collinfo: That is different
+  from the objinfo, which is more absolute about hardware and may not
+  have unique hardware for each process (e.g., if there are multiple processes
+  per core, as there are in testing).
 
-    /* First, find the number of levels with more than one member. */
-    nsizes = 0;
-    for (lev=0; lev<nlevels; lev++) {
-	if (hw[lev].nDistinct == 1) continue;
-        nsizes++;
-    }
-    /* Second, if the bottom level has communicators with more than one
-       process, add one to the number of levels */
-    MPI_Comm_size(hw[nlevels-1].comm, &np);
-    if (np > 1) nsizes++;
-
-    /* Allocate an array and add values */
-    levptr = (lev_t *)malloc(sizeof(lev_t));
-    levptr->nobj = (int *)malloc(2*np * sizeof(int));
-    levptr->objidx = levptr->nobj + np;
-
-    k = 0;
-    for (lev=0; lev<nlevels; lev++) {
-	if (hw[lev].nDistinct == 1) continue;
-        levptr->nobj[k]   = hw[lev].nDistinct;
-        levptr->objidx[k] = hw[lev].idx;
-	k++;
-    }
-    if (np > 1) {
-        levptr->nobj[k] = np;
-        MPI_Comm_rank(hw[nlevels-1].comm, &levptr->objidx[k]);
-        k++;
-    }
-    levptr->nlevs = k;
-    return levptr;
-}
-#else
+ */
 static lev_t *getLevelSizes(const hwdescCtx *hwc)
 {
     int lev, k, nsizes, np;
@@ -580,14 +418,19 @@ static lev_t *getLevelSizes(const hwdescCtx *hwc)
 
     /* Allocate an array and add values */
     levptr = (lev_t *)malloc(sizeof(lev_t));
-    levptr->nobj = (int *)malloc(2*np * sizeof(int));
-    levptr->objidx = levptr->nobj + np;
+    levptr->nobj = (int *)malloc(2*nsizes * sizeof(int));
+    levptr->objidx = levptr->nobj + nsizes;
 
     k = 0;
     for (lev=0; lev<nlevels; lev++) {
 	if (hwc->objinfo[lev].nobj == 1) continue;
-        levptr->nobj[k]   = hwc->objinfo[lev].nobj;
-        levptr->objidx[k] = hwc->objinfo[lev].objidx;
+//        levptr->nobj[k]   = hwc->objinfo[lev].nobj;
+//        levptr->objidx[k] = hwc->objinfo[lev].objidx;
+// Not right FIXME!!!
+//	MPI_Comm_size(hwc->collinfo[lev].objcomm, &levptr->nobj[k]);
+//	MPI_Comm_rank(hwc->collinfo[lev].objcomm, &levptr->objidx[k]);
+	levptr->nobj[k]   = hwc->collinfo[lev].nSiblings;
+	levptr->objidx[k] = hwc->collinfo[lev].siblingNum;
 	k++;
     }
     if (np > 1) {
@@ -598,7 +441,6 @@ static lev_t *getLevelSizes(const hwdescCtx *hwc)
     levptr->nlevs = k;
     return levptr;
 }
-#endif
 
 /* check that all processes have the same values for nlev and sizes[*] */
 int checkConsistentLevels(MPI_Comm comm, lev_t *levptr)
@@ -639,4 +481,49 @@ static void freeLevelSizes(lev_t *levs)
     if (levs->nobj)
 	free(levs->nobj);
     free(levs);
+}
+
+/*@ BENV_NodecartArgDebug - Look for debug options for nodecart routines
+
+Input Parameters:
++ argc - Argument count
+. argv - Argument vector
+- prefix - Arguments have this prefix; may be null. See below
+
+Input/Output Parameter:
+. argcnt - pointer to the index of the current argument. Will be updated
+ if a nodecart parameter is found by the number of values read, not counting
+ the argument itself.
+
+Return Value:
+Returns 1 if a known argument value is found, zero otherwise.
+
+Notes:
+Recognizes the debug class - 'nodecart'. Recognizes
+'-debugclass' as the argument name. Currently, the prefix is ignored.
+The class may be followed with ':b', ':d', or ':a' for basic, detail, or all
+debug information respectively.
+
+See also:
+BENV_DebugArgClass, BENV_DebugArgRank
+  @*/
+int BENV_NodecartArgDebug(int argc, char **argv, int *argcnt,
+			  const char *prefix)
+{
+    int rc=0;
+    static const char *classes[] = { "nodecart" };
+    static int *classval[] = { &cvar_benv_NODECART_verbose, };
+
+    CDBGV(ARGV,BASIC,"Starting NodecartArgDebug with prefix %s and next arg %s\n",
+	  prefix, argv[*argcnt]);
+    /* FIXME: Ignore prefix or allow but not require? */
+    /* Debug arg rank is not included so these routines can work without MPI */
+    rc = BENV_DebugArgClass(argc, argv, argcnt, 1, classes, classval);
+    if (rc == -1) {
+	/* DebugArgClass returns -1 if class not recognized. Ignore */
+	rc = 0;
+    }
+
+    CDBGV(ARGV,BASIC,"Ending NodecartArgDebug rc=%d\n", rc);
+    return rc;
 }

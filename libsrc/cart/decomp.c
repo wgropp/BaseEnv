@@ -8,8 +8,11 @@
 #include <string.h>
 #include "mpi.h"
 #include "benvutil.h"
+#include "benvdbg.h"
 #include "cartimpl.h"
 #include "decomp.h"
+
+CDBGFCALLDECL;
 
 /* Forward refs */
 static int BENVi_CartDecompFreeComm(cartdecompCtx *ctx);
@@ -59,6 +62,7 @@ int BENV_CartDecompCreate(int ndims, const int *psizes, const int *periods,
     int rc;
     const char *envstr;
 
+    CDBGFCALLENTER;
     /* How to decide???? Options include:
        local or global flag, env variable BENV_CARTDECOMP_FLAVOR, cvar */
     envstr = getenv("BENV_CARTDECOMP_FLAVOR");
@@ -66,7 +70,10 @@ int BENV_CartDecompCreate(int ndims, const int *psizes, const int *periods,
 	/* FIXME: Provide cvar interface */
 	if (strcmp(envstr,"MPI") == 0) flavor = 1;
 	else if (strcmp(envstr, "Simple") == 0) flavor = 2;
-	else return MPI_ERR_OTHER; /* Unknown flavor */ /* FIXME: Add error message */
+	else {
+	    CDBGFCALLEXIT;
+	    return MPI_ERR_OTHER; /* Unknown flavor */ /* FIXME: Add error message */
+	}
     }
     if (flavor == 1) {
 	rc = BENV_CartDecompCreateMPI(ndims, psizes, periods, comm, ctx);
@@ -78,6 +85,7 @@ int BENV_CartDecompCreate(int ndims, const int *psizes, const int *periods,
 	rc = MPI_ERR_OTHER;
     }
 
+    CDBGFCALLEXIT;
     return rc;
 }
 
@@ -93,7 +101,9 @@ BENV_CartDecompCreate
 @*/
 int BENV_CartDecompFree(cartdecompCtx *ctx)
 {
+    CDBGFCALLENTER;
     if (ctx->free) (*ctx->free)(ctx);
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }
 
@@ -116,6 +126,7 @@ int BENV_CartDecompGetShift(cartdecompCtx *ctx, int d, int shift, int *nrank)
     int ncoords[MAX_DIMS];
     int i;
 
+    CDBGFCALLENTER;
     for (i=0; i<ctx->ndims; i++) {
 	ncoords[i] = ctx->pcoords[i];
     }
@@ -124,10 +135,12 @@ int BENV_CartDecompGetShift(cartdecompCtx *ctx, int d, int shift, int *nrank)
     if (ctx->periods[d] == 0) {
 	if (ncoords[d] < 0 || ncoords[d] >= ctx->psizes[d]) {
 	    *nrank = MPI_PROC_NULL;
+	    CDBGFCALLEXIT;
 	    return MPI_SUCCESS;
 	}
     }
     (ctx->coordsToRank)(ctx, ncoords, nrank);
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }
 
@@ -139,6 +152,7 @@ int BENV_CartDecompCreateMPI(int ndims, const int *psizes, const int *periods,
     int wsize, crank, i;
     cartdecompCtx *nctx;
 
+    CDBGFCALLENTER;
     nctx = (cartdecompCtx *)malloc(sizeof(cartdecompCtx));
     if (!nctx) BENVi_MallocErr("cartdecompCtx", 1, "CartDecompCreateMPI");
 
@@ -161,6 +175,7 @@ int BENV_CartDecompCreateMPI(int ndims, const int *psizes, const int *periods,
     nctx->desc = (const char *)strdup("MPI_Cart_create");
     *ctx = nctx;
 
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }
 
@@ -171,6 +186,7 @@ int BENV_CartDecompCreateSimple(int ndims, const int *psizes,
     int wsize, r, i;
     cartdecompCtx *nctx;
 
+    CDBGFCALLENTER;
     nctx = (cartdecompCtx *)malloc(sizeof(cartdecompCtx));
     if (!nctx) BENVi_MallocErr("cartdecompCtx", 1, "CartDecompCreateSimple");
 
@@ -195,6 +211,7 @@ int BENV_CartDecompCreateSimple(int ndims, const int *psizes,
 
     *ctx = nctx;
 
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }
 
