@@ -11,13 +11,8 @@
 #include "benvutil.h"
 #include "benvmpiutil.h"
 #include "benvdbg.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#include "hwdescimpl.h"
-#else
 #include "hwdescnew.h"
 #include "hwdescimpl2.h"
-#endif
 
 CDBGEDECL(GETDESC);
 CDBGEDECL(COMM);

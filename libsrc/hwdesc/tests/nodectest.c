@@ -4,26 +4,17 @@
 #include "benvutil.h"
 #include "benvmpiutil.h"
 #include "seq.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#include "nodeinfo.h"
-#else
 #include "hwdescnew.h"
-#endif
 
 /* Test the hwdesc codes. Starting with the convenience routine for
    node information */
 int main(int argc, char **argv)
 {
     int rc, nodenum, nodeidx, noderank, nodesize, wrank;
-    MPI_Comm nodecomm;
-#ifndef USE_OLD
     int nodelevel, isexact;
-    hwdescCtx *hwc;
+    MPI_Comm nodecomm;
     hwdescParms parms;
-#else
-    hwdescParms_t parms;
-#endif
+    hwdescCtx *hwc;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &wrank);
@@ -48,16 +39,6 @@ int main(int argc, char **argv)
 	return 1;  /* should not reach here */
     }
 
-#ifdef USE_OLD
-    //printf("About to get node comms\n"); fflush(stdout);
-    rc = BENV_NodeGetNodeComm(MPI_COMM_WORLD, &nodecomm, &nodenum, &nodeidx);
-    //printf("Done getting node comms with rc=%d\n", rc); fflush(stdout);
-    if (rc) {
-	if (wrank == 0)
-	    printf("Error when getting node comm; aborting\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-#else
     rc = BENV_HwdescGetDescGeneral(MPI_COMM_WORLD, BENV_HWDESC_USE_ALL,
 				   &parms, &hwc);
     rc = BENV_HwdescFindObject(hwc, BENV_HWDESC_NODE, &nodelevel, &isexact);
@@ -74,7 +55,7 @@ int main(int argc, char **argv)
     nodecomm = hwc->collinfo[nodelevel].objcomm;
     nodenum  = hwc->collinfo[nodelevel].nSiblings;
     nodeidx  = hwc->collinfo[nodelevel].siblingNum;
-#endif
+
     MPI_Comm_rank(nodecomm, &noderank);
     MPI_Comm_size(nodecomm, &nodesize);
 #define NEWOUTPUT 1
@@ -87,7 +68,6 @@ int main(int argc, char **argv)
 	    nodeidx, nodenum, noderank, nodesize); fflush(stdout);
 #endif
 
-#ifndef USE_OLD
     BENV_SeqBegin(MPI_COMM_WORLD);
     printf("Node information on process %d:\n", wrank);
     BENV_HwdescPrintLocal(stdout, hwc, "");
@@ -98,13 +78,8 @@ int main(int argc, char **argv)
     }
     BENV_HwdescPrintAll(stdout, MPI_COMM_WORLD, hwc, 0);
     fflush(stdout);
-#endif
 
-#ifdef USE_OLD
-    MPI_Comm_free(&nodecomm);
-#else
     BENV_HwdescFreeCtx(hwc);
-#endif
     MPI_Finalize();
     return 0;
 }

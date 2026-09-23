@@ -6,8 +6,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mpi.h"
+#include "benvdbg.h"
 #include "subarrays.h"
 
+CDBGFCALLDECL;
 static int debugSubarray = 0;
 
 /*@ BENV_CreateSubarray - Generalized MPI_Type_create_subarray
@@ -56,9 +58,11 @@ int BENV_CreateSubarray(int ndims, const int gsize[], const int lsize[],
     int i, sizeoldtype;
     MPI_Datatype vtype2, vtype3;
 
+    CDBGFCALLENTER;
     if (ndims <= 0) {
 	*newtype = MPI_DATATYPE_NULL;
 	*offset  = 0;
+	CDBGFCALLEXIT;
 	return MPI_ERR_OTHER;
     }
     if (ndims >= 4) {
@@ -66,6 +70,7 @@ int BENV_CreateSubarray(int ndims, const int gsize[], const int lsize[],
 	fprintf(stderr, "Only ndims <= 3 implemented!\n");
 	*newtype = MPI_DATATYPE_NULL;
 	*offset  = 0;
+	CDBGFCALLEXIT;
 	return MPI_ERR_OTHER;
     }
 
@@ -130,5 +135,6 @@ int BENV_CreateSubarray(int ndims, const int gsize[], const int lsize[],
 	*newtype = MPI_DATATYPE_NULL;
 	*offset  = 0;
     }
+    CDBGFCALLEXIT;
     return MPI_SUCCESS;
 }

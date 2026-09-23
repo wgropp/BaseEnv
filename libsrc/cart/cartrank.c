@@ -20,6 +20,7 @@
    process (see tests/cranktest.c) */
 
 CDBGDECL(CARTRANK);
+CDBGFCALLDECL;
 
 /* Routines local to this file */
 #define PRIVATE static
@@ -78,6 +79,7 @@ int BENVi_Nodecart_create_from_hierarchy_local(const hwlevs_t *hwlevs,
     int lev, i, dimsgiven;
     hwlevs_t *hwlevscp = 0;
 
+    CDBGFCALLENTER;
     /* Handle the case of any dims not zero. Note this was not handled
        in the 2016 versions of the nodecart codes */
     dimsgiven = 0;
@@ -177,6 +179,7 @@ int BENVi_Nodecart_create_from_hierarchy_local(const hwlevs_t *hwlevs,
 	freeLevelSizes(hwlevscp);
     }
 
+    CDBGFCALLEXIT;
     return 0;
 }
 
@@ -197,6 +200,7 @@ int BENVi_DistributeDimsOverHW(hwlevs_t *hwlevs,
     int i, lastunspec, k, lev, ntot;
     cartHierarchy *carth;
 
+    CDBGFCALLENTER;
     /* Get the total number of processes. Each level specifies the number
        of items in each of the objects at the "higher" (i-1) level. */
     ntot = 1;
@@ -290,6 +294,7 @@ int BENVi_DistributeDimsOverHW(hwlevs_t *hwlevs,
     /* Return the cart hierarchy */
     *carth_ptr = carth;
 
+    CDBGFCALLEXIT;
     return 0;
 }
 
@@ -312,6 +317,7 @@ static int findNextFactorMatch(facinfo_t *lt, int nd, facinfo_t *dimsinfo,
 	ifac,   /* which of the factors in the current dimsinfo */
 	fval=1;
 
+    CDBGFCALLENTER;
     /* Scan for any match of factors. Handle the case of pwr == 0
        (meaning that all of those factors have already been used) */
     /* Better: Distribute all dimensions across the levels. That
@@ -393,6 +399,7 @@ static int findNextFactorMatch(facinfo_t *lt, int nd, facinfo_t *dimsinfo,
     else {
 	*f = fval;
     }
+    CDBGFCALLEXIT;
     return 1;
 }
 
@@ -419,12 +426,15 @@ PRIVATE int pickOrder(int ndims, const int fixeddims[],
 {
     int tmpdims[MAX_DIMS];
     int s, i, curscore;
+
+    CDBGFCALLENTER;
     /* for all orderings of combining dims with olddims, compute the
        balance, and take the ordering with the best balance */
     /* balance is defined as maxdim-mindim. Other definitions could be
        used */
     curscore = dimsBalance(ndims, olddims, dims);
     if (startidx == ndims-1) {
+	CDBGFCALLEXIT;
 	return curscore;
     }
     /* Else, recurse by considering all permutations starting at
@@ -464,6 +474,7 @@ PRIVATE int pickOrder(int ndims, const int fixeddims[],
 	    }
 	}
     }
+    CDBGFCALLEXIT;
     return curscore;
 }
 
@@ -554,9 +565,17 @@ void BENVi_RankToCoords(int ndims, const int dims[], int rank,
 			arrayorder_t order, int coords[])
 {
     int i, s;
+
+    CDBGFCALLENTERV("ndims=%d,dims[0]=%d,coords[0]=%d\n",
+		    ndims,dims[0],coords[0]);
     s = dims[0];
     for (i=1; i<ndims; i++)
 	s *= dims[i];
+    /* Sanity check: 0 <= rank < dims  */
+    if (rank < 0 || rank >= s) {
+	fprintf(stderr, "ERROR: Rank = %d not in [0,%d) in RankToCoords\n",
+		rank, s);
+    }
 
     if (order == BENV_ORDER_FORTRAN) {
 	/* "column major - first index varies fastest */
@@ -574,6 +593,7 @@ void BENVi_RankToCoords(int ndims, const int dims[], int rank,
 	    rank = rank - coords[i] * s;
 	}
     }
+    CDBGFCALLEXIT;
 }
 
 /* Given ndims/dims, coords in the process topology, and whether C or Fortran
@@ -701,7 +721,7 @@ int main(int argc, char **argv)
 	    dims    = defdims;
 	}
 	else if (strcmp(argv[i], "-v") == 0) {
-	    cvar_cartrank_verbose++;
+	    CDBGINCRVAL(CARTRANK);
 	}
 	else {
 	    fprintf(stderr, "Unrecognized argument %s\n", argv[i]);

@@ -593,7 +593,7 @@ int BENV_HwdescGetDescGeneral(MPI_Comm comm, int flags, hwdescParms *parms,
     hwcnew = BENV_HwdescCreateCtx(8);
 
     CDBGV(GETDESC,ALL,"About to check policy %s\n",
-	  parms->policy ? parms->policy : "No policy");
+	  (parms && parms->policy) ? parms->policy : "No policy");
     if (flags & BENV_HWDESC_USE_DEBUG) {
 	int hasval = 0;
 	/* Special case. Only use debug if flags == DEBUG or
@@ -1415,4 +1415,66 @@ static void settopobject(MPI_Comm comm, hwdescObjInfo *objinfo,
     objinfo[0].objidx = 0;
     objinfo[0].csrc   = csrc;
     objinfo[0].asrc   = asrc;
+}
+
+
+static int hwdescDelFn(MPI_Comm comm, int keyval, void *attr, void *estate);
+static int hwdescKeyval = MPI_KEYVAL_INVALID;
+
+/* Attribute functions */
+static int hwdescDelFn(MPI_Comm comm, int keyval, void *attr, void *estate)
+{
+    /* Check that we really do not need to free the pointer */
+    return 0;
+}
+
+/*FIXME: Need to decide how to handle deleting the hwdescCtx. right now,
+  nothing happens - e.g., the user must delete the hwdescCtx separately.
+  We could estalish a reference count mechanism */
+
+/*@ BENV_HwdescSaveDescToComm - Attached an hwdesdCtx to a communicator
+
+Input Parameters:
+. comm - Communicator
+. hwc - 'hwdescCtx' to attach to 'comm'
+
+.N returnvalue
+@*/
+int BENV_HwdescSaveDescToComm(hwdescCtx *hwc, MPI_Comm comm)
+{
+    if (hwdescKeyval == MPI_KEYVAL_INVALID) {
+	/* Create the hwinfo keyval. We'll set it in the step below */
+	MPI_Comm_create_keyval(MPI_COMM_NULL_COPY_FN, hwdescDelFn,
+			       &hwdescKeyval, NULL);
+    }
+    MPI_Comm_set_attr(comm, hwdescKeyval, hwc);
+    return 0;
+}
+
+/*@ BENV_HwdescGetDescFromComm - Return an hwdescCtx previously attached to a communicator
+
+Input Parameter:
+. comm - Communicator
+
+Output Parameter:
+. hwc - Pointer to an 'hwdescCtx'
+
+Return Value:
+Returns 0 if an 'hwdescCtx' was found on 'comm' and returned, 1 if there is
+no such 'hwdescCtx' (including no attribute keyval for the 'hwdescCtx', and
+-1 on other errors.
+@*/
+int BENV_HwdescGetDescFromComm(MPI_Comm comm, hwdescCtx **hwc)
+{
+    int        flag;
+    hwdescCtx *hwdesc;
+
+    if (hwdescKeyval == MPI_KEYVAL_INVALID) return 1;
+
+    MPI_Comm_get_attr(comm, hwdescKeyval, &hwdesc, &flag);
+    if (flag) {
+        *hwc = hwdesc;
+        return 0;
+    }
+    return 1;
 }

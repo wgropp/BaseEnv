@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 	    nranks = -1;
 	}
 	else if (strcmp(argv[i], "-v") == 0) {
-	    CDBGINCRVAL(distdims);
+	    CDBGINCRVAL(DISTDIMS);
 	}
 	else {
 	    fprintf(stderr, "Unrecognized argument %s\n", argv[i]);
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 
 	/* Output results */
 	fprintf(stdout, "For input dims ");
-	BENV_PrintTuple(stdout, ndims, dims, 1);
+	BENV_PrintIntTuple(stdout, ndims, dims, 1);
 
 #if 0
 	/* Note: Currently do not update hwlevs */

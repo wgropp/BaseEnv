@@ -5,11 +5,7 @@
 #include "mpi.h"
 #include "benvutil.h"
 #include "ntest.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#else
 #include "hwdescnew.h"
-#endif
 #include "tarray.h"
 #include "getsizes.h"
 
@@ -40,11 +36,7 @@ int main(int argc, char **argv)
     int i, j, ntrials=10, nlen, provided, wrank;
     options_t options;
     TActx  *timing;
-#ifdef USE_OLD
-    hwdescCtx_t *hwc;
-#else
     hwdescCtx *hwc;
-#endif
     FILE *fp;
 
     MPI_Init_thread(&argc, &argv, MPI_THREAD_SINGLE, &provided);

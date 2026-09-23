@@ -4,11 +4,7 @@
 #include "benvconf.h"
 #include "benvutil.h"
 #include "benvmpiutil.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#else
 #include "hwdescnew.h"
-#endif
 #include "seq.h"
 #include "benvdbg.h"
 
@@ -21,11 +17,7 @@ int main(int argc, char **argv)
 {
     int wsize, wrank, nnobj, nobjs[3];
     int rc;
-#ifdef USE_OLD
-    hwdescCtx_t *hwc;
-#else
     hwdescCtx *hwc;
-#endif
     const char *str;
     const char *policy;
 
@@ -52,37 +44,24 @@ int main(int argc, char **argv)
 	return 1;  /* should not reach here */
     }
 
-#ifndef USE_OLD
     hwc = BENV_HwdescCreateCtx(8);
-#endif
     /* 4 cores/socket, 2 sockets per node, so nodes = wsize / 8 */
-    nobjs[0] = wsize / 8; // nodes
-    nobjs[1] = 2;        // sockets
+    nobjs[0] = (7 + wsize) / 8; // nodes
+    nobjs[1] = 2;               // sockets
     nnobj    = 2;
     if (nobjs[0] <= 0) {
 	nobjs[0] = 1;
     }
     policy   = "B:C";
     rc = BENV_HwdescGetDescFromPolicy(MPI_COMM_WORLD, policy, wsize, wrank,
-				      nnobj, nobjs,
-#ifdef USE_OLD
-				      &hwc
-#else
-	hwc
-#endif
-	);
-
+				      nnobj, nobjs, hwc);
     if (rc != 0) {
 	fprintf(stderr, "Failed to get hw from policy!\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
     if (wrank == 0) {
 	int nlevel;
-#ifdef USE_OLD
-	nlevel = hwc->hwlevel;
-#else
 	nlevel = hwc->nlevel;
-#endif
 	printf("Created hw from policy %s with %d levels (hw objs[%d,%d])\n",
 	       policy, nlevel, nobjs[0], nobjs[1]);
 	fflush(stdout);
@@ -98,11 +77,7 @@ int main(int argc, char **argv)
     fflush(stdout);
 #endif
     printf("hw for rank %d\n", wrank);
-#ifdef USE_OLD
-    BENV_HwdescPrintCtxLocal(stdout, hwc, "");
-#else
     BENV_HwdescPrintLocal(stdout, hwc, "");
-#endif
     fflush(stdout);
     BENV_SeqEnd(MPI_COMM_WORLD);
 
@@ -126,33 +101,20 @@ int main(int argc, char **argv)
 
     MPI_Barrier(MPI_COMM_WORLD);
     BENV_HwdescFreeCtx(hwc);
-#ifndef USE_OLD
     hwc = BENV_HwdescCreateCtx(8);
-#endif
 
     nobjs[0] = wsize / 8; // nodes
     nobjs[1] = 2;        // sockets
     policy   = "C(2):C";
     rc = BENV_HwdescGetDescFromPolicy(MPI_COMM_WORLD, policy, wsize, wrank,
-				      nnobj, nobjs,
-#ifdef USE_OLD
-				      &hwc
-#else
-	hwc
-#endif
-	);
-
+				      nnobj, nobjs, hwc);
     if (rc != 0) {
 	fprintf(stderr, "Failed to get hw from policy!\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
     if (wrank == 0) {
 	int nlevel;
-#ifdef USE_OLD
-	nlevel = hwc->hwlevel;
-#else
 	nlevel = hwc->nlevel;
-#endif
 	printf("Created hw from policy %s with %d levels (hw objs[%d,%d])\n",
 	       policy, nlevel, nobjs[0], nobjs[1]);
 	fflush(stdout);

@@ -237,6 +237,9 @@ const char *BENV_HwdescKindStr(hwdescKind kind);
 const char *BENV_HwdescConfigStr(hwdescConfigSrc csrc);
 const char *BENV_HwdescAssignStr(hwdescAssignSrc asrc);
 
+int BENV_HwdescSaveDescToComm(hwdescCtx *hwc, MPI_Comm comm);
+int BENV_HwdescGetDescFromComm(MPI_Comm comm, hwdescCtx **hwc);
+
 /* Node information */
 /* Lower level routines to determine information within a node */
 #ifdef HAVE_HWLOC

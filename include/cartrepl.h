@@ -18,23 +18,16 @@ int MPIX_Nodecart_create(MPI_Comm comm_old, int ndims, const int dims[],
 /* Not a replacement routine, but available to users that already have
    information on the hw hierarchy for comm */
 typedef struct cartHierarchy *cartH_t;
-#ifdef USE_OLD
-int MPIX_Nodecart_create_from_hierarchy(MPI_Comm comm,
-					const hwdesc_t hwdesc[], int nlevels,
-					int ndims, int dims[],
-					const int periods[], int *newrank,
-					int cartcoords[],
-					cartH_t *carth);
-#else
 int MPIX_Nodecart_create_from_hierarchy(MPI_Comm comm,
 					const hwdescCtx *hwc,
 					int ndims, int dims[],
 					const int periods[], int *newrank,
 					int cartcoords[],
 					cartH_t *carth);
-#endif
 /* Hook for MPI-style CVAR support */
 void MPIX_Nodecart_cvar_set(const char *name, int value);
+int BENV_NodecartArgDebug(int argc, char **argv, int *argcnt,
+			  const char *prefix);
 
 /* End of routines that can replace MPI_Cart_xxx routines */
 

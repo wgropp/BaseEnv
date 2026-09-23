@@ -196,12 +196,12 @@ Input Parameters:
 . whichdim - which dimension of the mesh (see below)
 . shift - Partner process is at 'pcoords[whichdim]+shift'. If the mesh is
  nonperiodic, this value must be in the range [0,psizes[whichdim]). If not,
- MPI_DATATYPE_NULL is returned in 'halotype'.
+ 'MPI_DATATYPE_NULL' is returned in 'halotype'.
 . useSubarray - if true, use 'MPI_Type_create_subarray'; otherwise, use
  'BENV_Create_Subarray'
 . basetype - Base datatype (e.g., 'MPI_DOUBLE')
-. pcoords - ?? remove??
-. psizes - ?? also remove
+. pcoords - 
+. psizes - 
 . halowidth - width of the halo
 . larraylen - size of local mesh in each dimension
 - larraylenhalo - larraylenhalo[i] = larraylen[i] + 2*halowidth ?? why have both this and halowidth???

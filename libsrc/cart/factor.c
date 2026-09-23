@@ -589,6 +589,7 @@ void BENV_PrintTupleSoFar(FILE *fp, int n, const int vals[], int idx,
 #include "benvutil.h"
 void printFactors(FILE *fp, int n, factor_t *fac);
 int readlistofints(const char *s, int **vals);
+void checkValidDims(int val, int ndims, const int dims[]);
 void printFactors(FILE *fp, int n, factor_t *fac)
 {
     fprintf(fp, "Factors (%d): ", n);
@@ -670,7 +671,7 @@ int main(int argc, char **argv)
 	}
 	else if (strcmp(argv[i], "-v") == 0) {
 	    v++;
-	    CDBGSET(FACTOR, v);
+	    CDBGSETVAL(FACTOR, v);
 	}
 	else if (strcmp(argv[i], "--file") == 0) {
 	    FILE *fp;
