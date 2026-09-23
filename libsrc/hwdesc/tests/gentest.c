@@ -7,28 +7,14 @@
 #include "benvconf.h"
 #include "benvutil.h"
 #include "benvmpiutil.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#else
 #include "hwdescnew.h"
-#endif
 
-#if 0
-void clearNidx(hwdescNodeIdx_t *nidx);
-hwdescNode_t *createHwnode(int nsocket, int nnuma, int nonnode);
-void clearHwnodeIdx(hwdescNode_t *hwnode);
-#endif
 void printUsage(void);
 
 int main(int argc, char **argv)
 {
-#ifdef USE_OLD
-    hwdescParms_t parms;
-    hwdescCtx_t *hwc;
-#else
     hwdescParms parms;
     hwdescCtx *hwc;
-#endif
     int i, np = 128, rc, wrank, wsize;
     int doThreeObjTest=0;
 

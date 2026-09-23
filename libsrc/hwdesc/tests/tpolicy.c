@@ -6,13 +6,8 @@
 #include <string.h>
 #include "mpi.h"
 #include "benvconf.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#include "hwdescimpl.h"
-#else
 #include "hwdescnew.h"
 #include "hwdescimpl2.h"
-#endif
 
 int main(int argc, char **argv)
 {
