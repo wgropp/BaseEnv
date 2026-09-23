@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 	fflush(stdout);
     }
     if (wrank == 0) printf("More complex example:\n");
-    BENV_CollPrintFmt(stdout, MPI_COMM_WORLD, 0, "Comples format: str %s, range %d, and (expected) constant %d\n", "my str", wrank, 3);
+    BENV_CollPrintFmt(stdout, MPI_COMM_WORLD, 0, "Complex format: str %s, range %d, and (expected) constant %d\n", "my str", wrank, 3);
     if (wrank == 0) {
 	fflush(stdout);
     }

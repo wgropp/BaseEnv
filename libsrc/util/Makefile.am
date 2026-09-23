@@ -26,13 +26,11 @@ libbenvhip_a_SOURCES = memhip.hip
 	$(CPPFLAGS) -DUSING_HIPCC $(AM_CFLAGS) $(HIPCCFLAGS) -c $<
 endif
 
-DIST_SUBDIRS = tests
+SUBDIRS = tests
 
 SUFFIXES = .cu
 
 
-testbuilds:
-	(cd tests && $(MAKE) testbuilds)
 clean-local:
 	(cd tests && $(MAKE) clean)
 

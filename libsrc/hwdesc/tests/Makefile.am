@@ -1,4 +1,4 @@
-noinst_PROGRAMS = scheddecode nodectest hwprint hwdebug ninfo2 tpolicy ptest2 \
+check_PROGRAMS = scheddecode nodectest hwprint hwdebug ninfo2 tpolicy ptest2 \
 	gentest genwnode cvartest ninfo3 ninfopolicy
 
 scheddecode_SOURCES = scheddecode.c
@@ -22,7 +22,7 @@ clean-local:
 	rm -f *-stdout.txt *-stderr.txt ninfodetail.txt ninfo2detail.txt \
 		ninfo-out.txt
 
-testbuilds: scheddecode nodectest hwprint ninfo
+TESTS = cvartest.sh scheddecode.sh nodectest.sh hwprint.sh ninfo2.sh
 
 # Tests do not contribute to the documentation, so only an empty target
 # is included here

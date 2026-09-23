@@ -385,7 +385,9 @@ int BENV_NtestArgConfig(const char *arg, const char *newname)
  arguments
 
 Input Parameter:
-. fp - File pointer for output
++ fp - File pointer for output
+- prefix - Prefix for arguments
+
 @*/
 void BENV_NtestArgPrintUsage(FILE *fp, const char *prefix)
 {

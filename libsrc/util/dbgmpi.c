@@ -18,18 +18,16 @@
 /* Used to indicate whether to update cvar_benv_wrank */
 static int isInitialized=0;
 
-/*@ BENV_DebugArgRank - Look for debug options
+/*@ BENV_DebugArgRank - Specify the rank of the process for debug output
 
 Input Parameters:
 + argc - Argument count
-. argv - Argument vector
-- name - Arguments have this prefix; may be null. See below
+- argv - Argument vector
 
 Input/output Parameters:
-+ argcnt - pointer to the index of the current argument. Will be updated
+. argcnt - pointer to the index of the current argument. Will be updated
  if an hwdesc parameter is found by the number of values read, not counting
  the argument itself.
-- val - Incremented by one if '-debug name' seen
 
 Notes:
 This provides common processing for arguments of the form '-debugrank n',

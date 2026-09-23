@@ -144,6 +144,8 @@ This provides common processing for debug arguments. This supports
     -debugclass args
     -debugclass mem
 .ve
+'args' provides debug output about about argument processing. 'mem'
+provides some debug output about memory use (this is incomplete).
 
 See also:
  BENV_DebugArgClass, BENV_DebugArgRank

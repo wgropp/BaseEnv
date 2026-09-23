@@ -2,10 +2,6 @@ noinst_LTLIBRARIES = libbenvtopomet.la
 libbenvtopomet_la_SOURCES = topometrics.c
 DIST_SUBDIRS =
 
-testbuilds:
-
-#	(cd tests && $(MAKE) testbuilds)
-
 # Extensions to the automake Makefile to support use of doctext to
 # create documentation
 include $(abs_top_srcdir)/Makefile.doc
