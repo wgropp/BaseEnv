@@ -11,12 +11,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include "mpi.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#include "nodeinfo.h"
-#else
 #include "hwdescnew.h"
-#endif
 #include "getsizes.h"
 #include "benvdbg.h"
 
@@ -96,11 +91,7 @@ int main(int argc, char **argv)
     struct timeval currenttime, starttime;
     int     runsecs;
     int    *msgsizes, nsizes, pattern, sizeidx, maxsize, bufsize;
-#ifdef USE_OLD
-    hwdescCtx_t *hwc=0;
-#else
     hwdescCtx *hwc=0;
-#endif
     int      wsize, wrank, nrank, tag, npartners, *pranks, p, arank;
     int      err=0;
     options_t options;
@@ -160,12 +151,7 @@ int main(int argc, char **argv)
        need to communicate them to all processes */
 
     /* Ensure that we have at least node information */
-#ifdef USE_OLD
-    if (hwc->hwlevel <= 1)
-#else
-    if (hwc->nlevel <= 1)
-#endif
-    {
+    if (hwc->nlevel <= 1) {
 	if (wrank == 0) {
 	    fprintf(stderr, "No node information available, aborting\n");
 	    fflush(stderr);
@@ -180,31 +166,16 @@ int main(int argc, char **argv)
        of them. Leader ranks relative to hw[0].comm, which is MPI_COMM_WORLD
     */
     /* Get the rank in the local (node) communicator */
-#ifdef USE_OLD
-    MPI_Comm_rank(hwc->hw[1].comm, &nrank);
-#else
     MPI_Comm_rank(hwc->collinfo[1].objcomm, &nrank);
-#endif
     if (nrank == 0) {
 	int j = 0;
-#ifdef USE_OLD
-	npartners = hwc->hw[1].nDistinct-1;
-#else
 	npartners = hwc->objinfo[1].nobj-1;
-#endif
 	pranks    = (int *)malloc(npartners * sizeof(int));
 	checkMem(pranks, npartners*sizeof(int), "pranks");
-#ifdef USE_OLD
-	for (i=0; i<hwc->hw[1].nDistinct; i++) {
-	    if (wrank != hwc->hw[1].leaders[i])
-		pranks[j++] = hwc->hw[1].leaders[i];
-	}
-#else
 	for (i=0; i<hwc->objinfo[1].nobj; i++) {
 	    if (wrank != hwc->collinfo[1].leadersInParent[i])
 		pranks[j++] = hwc->collinfo[1].leadersInParent[i];
 	}
-#endif
 	CDBGV(NETSTRESS,BASIC,"Communicating process with worldrank %d\n", wrank);
     }
 

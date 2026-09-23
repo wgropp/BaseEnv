@@ -12,12 +12,7 @@
 #include "benvutil.h"
 #include "benvmpiutil.h"
 #include "ntest.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#include "nodeinfo.h"
-#else
 #include "hwdescnew.h"
-#endif
 #include "getsizes.h"
 #include "benvdbg.h"
 #include "arrindex.h"
@@ -52,24 +47,13 @@ typedef struct {
     int isOverlapped;/* Set if communication is overlapped with work */
     int overlapWork; /* Determines the amount of work */
     int outtime;     /* Determines which output data to provide. Bit mask */
-#if 0
-    double ntestWT;  /* Multiple of Wtick to use in determining ntest */
-    double ntestS;   /* Latency to use in determining ntest */
-    double ntestR;   /* Inverse bandwidth to use in determining ntest */
-    double ntestWtick; /* Use this value for wtick instead of MPI_Wtick */
-#endif
     ntestctx_t *ntestctx;
     int *msgsizes;   /* Message sizes to use */
     int *nprocarray; /* Array of number of processes for tests */
     char *mapName;   /* Name for the mapping file. Only used on rank 0 */
     char *outName;   /* Name for output file.  If null, use stdout */
-#ifdef USE_OLD
-    hwdescParms_t parms;  /* Used to control how the hardware description is
-			     determined */
-#else
     hwdescParms parms;    /* Used to control how the hardware description is
 			     determined */
-#endif
 } options_t;
 
 #if 0
@@ -100,15 +84,6 @@ void doworkinit(int maxlen, int parm);
 #endif
 
 int getOptions(int argc, char *argv[], options_t *options);
-#ifdef USE_OLD
-int checkNodeDecomp(hwdescCtx_t *hwc);
-int getPartners(hwdescCtx_t *hwc, int **masterranks, int **partnerranks,
-		int *nranks);
-int printReport(FILE *, MPI_Comm comm, hwdescCtx_t *hwc,
-		int nranks, int *masterranks, int *partnerranks,
-		int nprocnum, int *nprocarray,
-		int nmsgsizes, int *msgsizes, double *timeArray);
-#else
 int checkNodeDecomp(hwdescCtx *hwc);
 int getPartners(hwdescCtx *hwc, int **masterranks, int **partnerranks,
 		int *nranks);
@@ -116,7 +91,6 @@ int printReport(FILE *, MPI_Comm comm, hwdescCtx *hwc,
 		int nranks, int *masterranks, int *partnerranks,
 		int nprocnum, int *nprocarray,
 		int nmsgsizes, int *msgsizes, double *timeArray);
-#endif
 int runTests(MPI_Comm comm, int nmsgsizes, const int msgsizes[],
 	     int nranks, const int masterranks[], const int partnerranks[],
 	     int nprocnum, const int nprocarray[],
@@ -161,25 +135,13 @@ static int showProgress = 0;
 
 int main(int argc, char **argv)
 {
-#if 0
-    hwdesc_t hw[MAX_HW_DEPTH];
-#else
-#ifdef USE_OLD
-    hwdescCtx_t *hwc=0;
-#else
     hwdescCtx *hwc=0;
-#endif
-//    hwdescParms_t parms;
     int      flag;
-#endif
     int      rc, required, provided, wsize, wrank;
     int      *masterranks, *partnerranks, nranks;
     options_t options;
     double   *timeArray = 0;
     int      tsize; /* Number of elements in a single block of timeArray */
-#if 0
-    ntestinfo_t *ntestinfo=0;
-#endif
     commroutine_t *commroutine = commBlockingSend;
 
     /* Create and initialize ntest count */
@@ -281,13 +243,7 @@ int main(int argc, char **argv)
     rc = BENV_HwdescGetDescGeneral(MPI_COMM_WORLD, flag, &options.parms, &hwc);
 #endif
 
-    CDBGV(SMPTEST,BASIC,"Done with GetDescGeneral (depth = %d)\n",
-#ifdef USE_OLD
- hwc->hwlevel
-#else
- hwc->nlevel
-#endif
-);
+    CDBGV(SMPTEST,BASIC,"Done with GetDescGeneral (depth = %d)\n", hwc->nlevel);
 
     /* Sanity check that we have a usable decomposition */
     rc = checkNodeDecomp(hwc);
@@ -358,12 +314,7 @@ int main(int argc, char **argv)
     for (int trial=0; trial<options.nTrials; trial++) {
 	CDBGV(SMPTEST,BASIC,"Running tests for trial %d\n", trial);
 	if (showProgress) fprintf(stdout, "Trial %d\n", trial);
-	rc = runTests(
-#ifdef USE_OLD
-	    hwc->hw[0].comm,
-#else
-	    hwc->collinfo[0].objcomm,
-#endif
+	rc = runTests(hwc->collinfo[0].objcomm,
 		      options.nMsgSizes, options.msgsizes,
 		      nranks, masterranks, partnerranks,
 		      options.nProcNum, options.nprocarray,
@@ -392,24 +343,15 @@ int main(int argc, char **argv)
 	if (options.mapName) {
 	    fm = fopen(options.mapName, "w");
 	}
-#ifdef USE_OLD
-	BENV_HwdescPrintAll(fm, hwc->hw[0].comm, hwc, 0);
-#else
 	BENV_HwdescPrintAll(fm, hwc->collinfo[0].objcomm, hwc, 0);
-#endif
 	CDBG(SMPTEST,BASIC,"Output Hwdesc map");
 	if (options.mapName) {
 	    fclose(fm);
 	}
     }
 
-    examineTiming(
-#ifdef USE_OLD
-	hwc->hw[0].comm,
-#else
-	hwc->collinfo[0].objcomm,
-#endif
-	timeArray, options.nMsgSizes, nranks,
+    examineTiming(hwc->collinfo[0].objcomm,
+		  timeArray, options.nMsgSizes, nranks,
 		  options.nProcNum, options.nTrials, &tarray);
     if (wrank == 0) {
 	/* Output the data. The default is just the min times (tarray+tsize),
@@ -422,13 +364,7 @@ int main(int argc, char **argv)
 	for (int i=0; i<3; i++) {
 	    if (options.outtime & outflag[i]) {
 		fprintf(fp, "%s\n", outlabel[i]);
-		printReport(fp,
-#ifdef USE_OLD
-			    hwc->hw[0].comm,
-#else
-			    hwc->collinfo[0].objcomm,
-#endif
-			    hwc,
+		printReport(fp, hwc->collinfo[0].objcomm, hwc,
 			    nranks, masterranks, partnerranks,
 			    options.nProcNum, options.nprocarray,
 			    options.nMsgSizes, options.msgsizes,
@@ -932,11 +868,7 @@ int getPartners(hwdescCtx *hwc,
 	if (!allranks) {
 	    fprintf(stderr, "Unable to allocated %d words for ranks\n", nsize);
 	    fflush(stderr);
-#ifdef USE_OLD
-	    MPI_Abort(hwc->hw[0].comm, 1);
-#else
 	    MPI_Abort(hwc->collinfo[0].objcomm, 1);
-#endif
 	}
 	if (hwc->objinfo[1].objidx == 0) ranks = mranks;
 	else                ranks = pranks;
@@ -1008,12 +940,7 @@ int examineTiming(MPI_Comm comm, double *timeArray, int nmsgsizes, int nranks,
 /* Print the timing report. Only the process performing the output should
    call
 */
-int printReport(FILE *fp, MPI_Comm comm,
-#ifdef USE_OLD
-		hwdescCtx_t *hwc,
-#else
-		hwdescCtx *hwc,
-#endif
+int printReport(FILE *fp, MPI_Comm comm, hwdescCtx *hwc,
 		int nranks, int *masterranks, int *partnerranks,
 		int nprocnum, int *nprocarray,
 		int nmsgsizes, int *msgsizes, double *timeArray)

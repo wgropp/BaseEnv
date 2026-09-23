@@ -10,11 +10,7 @@
 #include "tarray.h"
 #include "benvmem.h"
 #include "seq.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#else
 #include "hwdescnew.h"
-#endif
 
 typedef struct {
     int verbose;     /* Provide more information about the operation of code */
@@ -29,11 +25,7 @@ typedef struct {
 			output */
     MemObj_type mtype; /* Memory type (e.g., malloc on CPU or GPU) */
     ntestctx_t *ntestctx;
-#ifdef USE_OLD
-    hwdescParms_t hwparms; /* Parameters for hwdesc creation */
-#else
     hwdescParms hwparms; /* Parameters for hwdesc creation */
-#endif
     int *msgsizes;   /* Message sizes to use */
     const char *outName;   /* Name for output file.  If null, use stdout */
     const char *outRawName; /* Name for output of raw date. If null, no output */
@@ -260,7 +252,7 @@ int getOptions(int argc, char **argv, options_t *options)
 	/* Look for common options */
 	rc = BENV_NtestArg(argc, argv, &i, 0, options->ntestctx);
 	BENV_ARGCHECK(rc,"error in ntest options",return 1);
-	rc = BENV_MemArg(argc, argv, &i, &options->mtype);
+	rc = BENV_MemArg(argc, argv, &i, 0, &options->mtype);
 	BENV_ARGCHECK(rc,"error in memobj options",return 1);
 	rc = BENV_HwdescArg(argc, argv, &i, "-hw", &options->hwparms);
 	BENV_ARGCHECK(rc,"error in hwdesc options",return 1);
@@ -355,7 +347,7 @@ void printUsage(void)
     fprintf(stderr, "\
 vectest - Test MPI communication from CPU and GPUs\n");
     BENV_NtestArgPrintUsage(stderr, 0);
-    BENV_MemArgPrintUsage(stderr);
+    BENV_MemArgPrintUsage(stderr, 0);
     BENV_HwdescArgPrintUsage(stderr, 0, -1);
     fprintf(stderr, "\
  -v - Set verbose output\n\

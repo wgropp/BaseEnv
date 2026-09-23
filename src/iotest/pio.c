@@ -17,12 +17,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include "mpi.h"
-#ifdef USE_OLD
-#include "hwdesc.h"
-#include "nodeinfo.h"
-#else
 #include "hwdescnew.h"
-#endif
 #include "getsizes.h"
 #include "benvdbg.h"
 #include "benvutil.h"
@@ -173,9 +168,6 @@ int main(int argc, char **argv)
     /* Determine node and process on node: Get a communicator of just
        the local processes. Future: Separate out different sockets*/
     /* Query: Do we need a comm of node leaders? */
-#ifdef USE_OLD
-    BENV_NodeGetNodeComm(MPI_COMM_WORLD, &nodecomm, &nodenum, &nodeidx);
-#else
     hwdescCtx *hwc;
     int nodelevel, isexact;
     rc = BENV_HwdescGetDescGeneral(MPI_COMM_WORLD, BENV_HWDESC_USE_ALL, 0, &hwc);
@@ -187,7 +179,6 @@ int main(int argc, char **argv)
     nodecomm = hwc->collinfo[nodelevel].objcomm;
     nodenum  = hwc->collinfo[nodelevel].nSiblings;
     nodeidx  = hwc->collinfo[nodelevel].siblingNum;
-#endif
     MPI_Comm_rank(nodecomm, &noderank);
 
     /* Run tests */
