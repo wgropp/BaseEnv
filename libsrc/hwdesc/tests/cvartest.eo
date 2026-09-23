@@ -1,0 +1,16 @@
+cvar values:
+cvar_hwdesc_
+	ppn: 128
+	spn: 4
+	numaps: 2
+	corespnuma: -1
+	debug: true
+	from_cvar: true
+	addNodeName: true
+hwparm values:
+	Policy: <NONE>
+	nnobj: 3
+	nobjs: 1, 4, 2, 
+	forcedebug: true
+	printmap: false
+	mapname: <NONE>
