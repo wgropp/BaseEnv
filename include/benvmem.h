@@ -24,8 +24,8 @@ typedef struct memobj {
 void BENV_MemDebug(int v, int wrank);
 void BENV_MemFree(MemObj_t *mo);
 MemObj_t *BENV_MemAlloc(size_t n, MemObj_type t);
-int BENV_MemArg(int, char **, int *, MemObj_type *);
-void BENV_MemArgPrintUsage(FILE *fp);
+int BENV_MemArg(int, char **, int *, const char *prefix, MemObj_type *);
+void BENV_MemArgPrintUsage(FILE *fp, const char *prefix);
 int BENV_MemArgConfig(const char *arg, const char *newname);
 
 int BENV_MemDeviceInit(MemObj_type mtype);
