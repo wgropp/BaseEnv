@@ -3,10 +3,7 @@ noinst_LTLIBRARIES = libbenvta.la
 libbenvta_la_SOURCES = tarray.c gplot.c
 DIST_SUBDIRS =
 
-testbuilds:
-#	(cd tests && $(MAKE) testbuilds)
 clean-local:
-#	(cd tests && $(MAKE) clean)
 
 # Extensions to the automake Makefile to support use of doctext to
 # create documentation

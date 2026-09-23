@@ -3,17 +3,11 @@ SUBDIRS = libsrc . src
 DIST_SUBDIRS = $(SUBDIRS) doc
 
 lib_LTLIBRARIES = libbenv.la libbenvcartshim.la
-# Use hwdesc2 instead of hwdesce
-# Use hwdesc for USE_OLD
 libbenv_la_LIBADD = libsrc/util/libbenvutil.la libsrc/cart/libbenvcart.la \
 	libsrc/topometrics/libbenvtopomet.la \
-	libsrc/timearray/libbenvta.la
+	libsrc/timearray/libbenvta.la \
+	libsrc/hwdesc/libbenvhwdesc2.la
 libbenv_la_SOURCES =
-if USE_OLD
-libbenv_la_LIBADD += libsrc/hwdesc/libbenvhwdesc.la
-else
-libbenv_la_LIBADD += libsrc/hwdesc/libbenvhwdesc2.la
-endif
 
 if HAVE_CUDA
 lib_LIBRARIES = libbenvcuda.a
@@ -31,13 +25,6 @@ libbenvcartshim_la_SOURCES =
 
 # nodeinfo might be removed
 # libsrc/nodeinfo/libbenvninfo.la
-
-# Testing for library routines
-# Because these are (mostly) parallel programs, it is a bit trickier to
-# run them. Instead, there is a build target for the tests, then sample
-# run scripts in the test directories
-testbuilds:
-	(cd libsrc && $(MAKE) testbuilds)
 
 # Extensions to the automake Makefile to support use of doctext to
 # create documentation

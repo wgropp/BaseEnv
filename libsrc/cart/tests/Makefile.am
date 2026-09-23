@@ -1,5 +1,5 @@
 AUTOMAKE_OPTIONS = subdir-objects
-noinst_PROGRAMS = ncarttest cartranktst factortst shimtest distdimstst
+check_PROGRAMS = ncarttest cartranktst factortst shimtest distdimstst
 ncarttest_SOURCES = ncarttest.c
 cartranktst_SOURCES = ../cartrank.c ../factor.c
 cartranktst_CPPFLAGS = -DBUILD_TEST $(AM_CPPFLAGS)
@@ -13,8 +13,8 @@ AM_CPPFLAGS = -I../../../include -I..
 LDADD = ../../../libbenv.la
 EXTRA_PROGRAMS = shimtestf
 
-
-testbuilds: ncarttest
+TESTS = ncarttest.sh factortst.sh distdimstst.sh shimtest.sh
+# cartranktst.sh shimtestf.sh
 
 # Tests do not contribut to the documentation, so only a empty target
 # is included here

@@ -1,11 +1,5 @@
 SUBDIRS = util hwdesc cart topometrics timearray
 
-testbuilds:
-	@for dir in $(SUBDIRS) ; do\
-	    echo "Making testbuilds in $$dir ..." ; \
-	    (cd $$dir && $(MAKE) testbuilds) ; \
-	done
-
 # Extensions to the automake Makefile to support use of doctext to
 # create documentation
 include $(abs_top_srcdir)/Makefile.doc

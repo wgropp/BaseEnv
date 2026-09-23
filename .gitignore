@@ -84,6 +84,11 @@ src/pingpong/vectest
 src/smptest/smptest
 src/stress/netstress
 
+# Test output
+*.trs
+*.sh.log
+test-suite.log
+
 # Generated Documentation
 # See also doc/.gitignore
 www/

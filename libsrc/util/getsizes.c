@@ -7,7 +7,6 @@
 #include <ctype.h>
 #include <string.h>
 #include "getsizes.h"
-//#define DO_DEBUG 1
 #include "benvdbg.h"
 
 typedef enum { UNKNOWN, LIST, RANGE, RANGE_ADDITIVE, RANGE_MULT,
@@ -40,202 +39,6 @@ static void errSizeArg(const char *, const char *, const char *);
 
 /* QUERY: extract just the parse arg, return the values of a,b,c,d,n
    and the type; if list, return the list val */
-
-/*@ BENV_RstringToArrayOLD - Return an array of integers from a string describing
-  a range of integers
-
- Input Parameters:
-. rstring - String containing a list of ranges (see below)
-
- Output Parameter:
-. nsizes - number of values returned
-
- Return value:
- Pointer to an array, allocated with 'malloc', containing the integers
- On error, 'nsizes == -1' and the return value is 'NULL'.
- The user should 'free(ptr)' where 'ptr' is the value returned by this routine.
-
- Notes:
-This routine looks a string representing a list, where
-where 'list' may be either a comma-separated list of values or a range with
-an optional stride.  Specifically,
-.vb
-   a,b,...,c (comma separated list)
-   a:b or a:b:c (range with additive stride)
-   a:b*c (range with multiplicative stride)
-   a:b*c+d:n (range with multiplicative stride, with arithmetic
-              distribution around points: that is, take the values from
-              a:b*c and add (-nd, -(n-1)d,... -d, d, ..., nd) points,
-              staying within the interval [a,b]
-.ve
-Here, 'a' and 'b' may have postfix 'k' or 'K' for times 1024 and 'm' or 'M'
-for times 1024*1024.
-  @*/
-int *BENV_RstringToArrayOLD(char *rstring, int *nsizes)
-{
-    sizeval_t sizetype;
-    int       j;
-    char      *p;
-    int       start, end, stride=1;
-    int       ival, err;
-    int       delta=0, ndelta=0; /* for the arithmetic around multiplicative
-				    strides */
-    double    fval, fstride;
-    int       nvals, listvals[MAXLISTVALS], *sptr;
-
-    *nsizes = -1;
-
-    p = rstring;
-    sizetype = UNKNOWN;
-    nvals    = 0;
-    while (*p) {
-	ival = BENV_ScanScaledInt((const char **)&p, 1, &err);
-	if (err) {
-	    errSizeArg("scaled int", NULL, rstring);
-	    return 0;
-	}
-	fval = ival;
-	if (sizetype == RANGE_MULT && *p == '.') {
-	    /* Handle the case of a decimal stride for the multiplicative
-	       fraction. For best precision, use strtod, but this
-	       is good enough for the need here. */
-	    double frac = 1e-1;
-	    p++;
-	    while (*p && isdigit(*p)) {
-		fval += (*p - '0') * frac;
-		frac *= 1e-1;
-		p++;
-	    }
-	    /* No postfix (kKmM) for stride */
-	}
-
-	switch (sizetype) {
-	case UNKNOWN:
-	    if (!*p || *p == ',') {
-		if (nvals >= MAXLISTVALS) {
-		    errSizeArg("list", NULL, rstring);
-		    return 0;
-		}
-		sizetype = LIST; listvals[nvals++] = ival;
-		}
-	    else if (*p == ':') {
-		sizetype = RANGE;
-		start    = ival;
-	    }
-	    else {
-		errSizeArg("size", NULL, rstring);
-		return 0;
-	    }
-	    if (*p) p++;
-	    break;
-	case LIST:
-	    if (!*p || *p == ',') {
-		if (nvals >= MAXLISTVALS) {
-		    errSizeArg("list", NULL, rstring);
-		    return 0;
-		}
-		listvals[nvals++] = ival;
-	    }
-	    else {
-		errSizeArg("list", NULL, rstring);
-		return 0;
-	    }
-	    if (*p) p++;
-	    break;
-	case RANGE:
-	    if (!*p || *p == ':') {
-		sizetype = RANGE_ADDITIVE;
-		end = ival;
-	    }
-	    else if (*p == '*') {
-		sizetype = RANGE_MULT;
-		end = ival;
-	    }
-	    else {
-		errSizeArg("range", NULL, rstring);
-		return 0;
-	    }
-	    if (*p) p++;
-	    break;
-	case RANGE_ADDITIVE:
-	    if (!*p) {
-		stride = ival;
-	    }
-	    else {
-		errSizeArg("range", NULL, rstring);
-		return 0;
-	    }
-	    break;
-	case RANGE_MULT:
-	    if (*p == '+') {
-		fstride  = fval;
-		p++;
-		sizetype = RANGE_MULT_DELTA;
-	    }
-	    else if (!*p) {
-		fstride = fval;
-	    }
-	    else {
-		errSizeArg("range", NULL, rstring);
-		return 0;
-	    }
-	    break;
-	case RANGE_MULT_DELTA:
-	    delta   = ival;
-	    if (*p != ':') {
-		errSizeArg("range", NULL, rstring);
-		return 0;
-	    }
-	    else {
-		p++;
-		ndelta = BENV_ScanScaledInt((const char **)&p, 1, &err);
-	    }
-	} /* switch */
-    } /* while *p */
-
-    switch (sizetype) {
-    case LIST:
-	*nsizes = nvals;
-	sptr = (int *)malloc(nvals * sizeof(int));
-	if (!sptr) {
-	    fprintf(stderr, "Could not allocate %d words for size %s\n",
-		    nvals, rstring);
-	    return 0;
-	}
-	for (j=0; j<nvals; j++) sptr[j] = listvals[j];
-	break;
-    case RANGE:
-    case RANGE_ADDITIVE:
-	sptr = BENV_GetSizesArith(start, end, stride, nsizes);
-	if (!sptr) {
-	    fprintf(stderr, "Could not allocate %d words for size %s\n",
-		    nvals, rstring);
-	    return 0;
-	}
-	break;
-    case RANGE_MULT:
-	sptr = BENV_GetSizesMult(start, end, fstride, nsizes);
-	if (!sptr) {
-	    fprintf(stderr, "Could not allocate %d words for size %s\n",
-		    nvals, rstring);
-	    return 0;
-	}
-	break;
-    case RANGE_MULT_DELTA:
-	sptr = BENV_GetSizesMultDelta(start, end, fstride, delta, ndelta,
-				      nsizes);
-	if (!sptr) {
-	    fprintf(stderr, "Could not allocate %d words for size %s\n",
-		    nvals, rstring);
-	    return 0;
-	}
-	break;
-    default:
-	fprintf(stderr, "Malformed size argument %s\n", rstring);
-	return 0;
-    }
-    return sptr;
-}
 
 /*@ BENV_GetSizes - Return an array of integers from the argument list
 
@@ -272,7 +75,8 @@ an optional stride.  Specifically,
               staying within the interval [a,b]
 .ve
 Here, 'a' and 'b' may have postfix 'k' or 'K' for times 1024 and 'm' or 'M'
-for time 1024*1024.
+for time 1024*1024. Note that the implementation of this routine could support
+Ki and Mi for 2^10 and 2^20 and K and M for '10^3' and '10^6' respectively.
 
 This routine sets found arguments to null to permit other routines to process
 other arguments; this requires all routines to permit a 'NULL' argument for
@@ -467,37 +271,6 @@ int *BENV_GetSizesMultDelta(int start, int end, double factor, int delta,
     return sptr;
 }
 
-#if 0
-/*
- * Scan an int, which may be followed by k,K,m, or M, which are 1024 or 1024^2
- * Update the passed argument to point to the next character.
- */
-static int scanInt(const char **str)
-{
-    int ival = 0;
-    const char *p = *str;
-
-    while (*p && isdigit(*p)) {
-	ival = (*p - '0') + 10*ival;   /* Assumes ASCII */
-	p++;
-    }
-    if (*p) {
-	if (*p == 'k' || *p == 'K') {
-	    ival *= KIBI;
-	    p++;
-	}
-	if (*p == 'm' || *p == 'M') {
-	    ival *= MEBI;
-	    p++;
-	}
-	/* Allow "i" or "I" to follow (but ignore) */
-	if (*p == 'i' || *p == 'I') p++;
-    }
-    *str = p;
-    return ival;
-}
-#endif
-
 /* Issue an error message for a malformed range string. a1 may be null,
    if non-null, a typical value is the command-line argument name */
 static void errSizeArg(const char *nm, const char *a1, const char *a2)
@@ -681,6 +454,8 @@ an optional stride.  Specifically,
 Here, 'a' and 'b' may have postfix 'k' or 'K' for times 1024 and 'm' or 'M'
 for times 1024*1024. The string may contain a comma-separated list of 'list's,
 as in 'a:b,c,d,e:f*g' .
+Note that the implementation of this routine could support
+Ki and Mi for 2^10 and 2^20 and K and M for '10^3' and '10^6' respectively.
   @*/
 int *BENV_RstringToArray(const char *rstring, int *nsizes)
 {

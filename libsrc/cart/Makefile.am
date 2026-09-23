@@ -13,11 +13,9 @@ if INCLUDESHIMLIB
 libbenvcartshim_la_SOURCES += ncartshimf.c
 endif
 
-DIST_SUBDIRS = tests
+SUBDIRS = tests
 
 
-testbuilds:
-	(cd tests && $(MAKE) testbuilds)
 clean-local:
 	(cd tests && $(MAKE) clean)
 

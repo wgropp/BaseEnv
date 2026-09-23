@@ -131,8 +131,9 @@ static const char *arg_memtype = "-memtype";
 
 Input Parameters:
 + argc - Argument count
-- argv - Argument vector. Typically, 'argc' and 'argv' are the values from
+. argv - Argument vector. Typically, 'argc' and 'argv' are the values from
  'main'
+- prefix - Arguments have this prefix; may be null. See below
 
 In/Out Parameters:
 . argcnt - Pointer to the index in 'argv' of the current argument. If
@@ -146,10 +147,22 @@ Notes:
  'malloc' is always available. Other options include 'cuda', 'HIP', and 'scyl'
  The command line option is '-memtype'
  @*/
-int BENV_MemArg(int argc, char **argv, int *argcnt, MemObj_type *mtype)
+int BENV_MemArg(int argc, char **argv, int *argcnt, const char *prefix,
+		MemObj_type *mtype)
 {
     int rc=0;
     int i=*argcnt;
+    char *ap = argv[i];
+
+    /* If prefix defined, check and skip over it if found */
+    if (prefix) {
+	const char *p=prefix;
+	while (*ap && *p && *ap == *p) {
+	    ap++; p++;
+	}
+	/* if we did not reach the end of prefix, we're done */
+	if (*p) return 0;
+    }
 
     if (strcmp(argv[i], arg_memtype) == 0) {
         i++;
@@ -211,17 +224,21 @@ int BENV_MemArgConfig(const char *arg, const char *newname)
  objects
 
 Input Parameter:
-fp - File pointer for output
++ fp - File pointer for output
+- prefix - Prefix for arguments
 
 Notes:
  Writes out the usage information for the command line arguments understood by
  'BENV_MemArg'
  @*/
-void BENV_MemArgPrintUsage(FILE *fp)
+void BENV_MemArgPrintUsage(FILE *fp, const char *prefix)
 {
+    const char *p;
+    if (prefix) p = prefix;
+    else        p = "";
     fprintf(fp, "\
-  -memtype name - Manage data for the named device type. Valid values are:\n\
-      malloc - Memory on the CPU (host), allocated with malloc\n");
+  %s-memtype name - Manage data for the named device type. Valid values are:\n\
+      malloc - Memory on the CPU (host), allocated with malloc\n", p);
 #ifdef HAVE_CUDA
     fprintf(fp, "\
       cuda   - Memory on the GPU, allocated with cudaMalloc\n");

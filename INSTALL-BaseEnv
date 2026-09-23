@@ -1,0 +1,74 @@
+Installation instructions for BaseEnv
+
+The file INSTALL contains generic installation instructions for programs using
+autoconf and automake and using configure to build Makefiles. This file contains
+information specific to BaseEnv
+
+Building BaseEnv
+================
+
+To build BaseEnv, first run ./configure and then run make.
+In the common case, configure BaseEnv by providing the compilers that are used
+for MPI programs. For example, this works on my MacBook:
+
+     configure CC=mpicc FC=mpifort CXX=mpic++
+
+On some systems, no special compilers are needed. However, configure will prefer
+GNU compilers, so you may want to specify the compilers. For example, on
+the Delta and DeltaAI systems at NCSA, this configure line is used:
+
+    configure CC=cc FC=fortran CXX=c++  CHECK!!!!
+
+There are several features that you may want to consider. Enable options
+are used to turn these on. For example,
+
+--enable-cuda - Enable use of CUDA memory
+--enable-hip  - Enable use of HIP memory
+--enable-sycl - Enable use of SYCL memory
+
+--enable-strict - If using the GNU compilers, enable verbose compiler warnings
+                  about code usage, such as uninitialized variables
+
+In some cases, the default paths (e.g., for include or library files) need
+to be overridden for some feature. Use --with-xxx options to provide such
+information. For example:
+
+--with-cuda=path
+--with-cuda-sdk=path
+--with-hwlocdir=path
+
+Finally, there are some standard configure options that are often used.
+For example,
+
+--prefix=path - Install into path
+
+When configure runs, it will output the results of each test. Most of this can
+be ignored unless there are problems. The BaseEnv configure outputs, at the end,
+a summary of the major features it has found, particularly for hardware
+configuration.
+
+Creating the Libraries and Programs
+===================================
+Second, build the libraries and programs. Simply execute make:
+
+    make
+
+Testing the Libraries and Programs
+==================================
+Unfortunately, many systems do not provide a standard mpiexec program that
+can run an arbitrary MPI program on a given number of processes.
+Some of the library directories contain a "tests" subdirectory. These programs
+can be built by cd'ing to that directory and running make. The directory
+runscripts contains example batch and shell scripts that run the tests. You
+will need to create your own scripts following these examples. Please consider
+contributing your scripts to the repository.
+
+Documentation
+=============
+Most of the documentation of the routines and programs is produced from the
+source files with the program doctext, which was developed in the early 1990s
+to produce documentation from structured comments in source files. Running
+doctext requires a separate packate, sowing. The BaseEnv documentation
+consists of man (nroff) files in the directory man, HTML files in the directory
+www, and LaTeX files in the directory doc/tex.
+

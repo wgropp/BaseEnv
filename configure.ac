@@ -57,16 +57,6 @@ AC_ARG_ENABLE([strict],
     [CFLAGS="$CFLAGS -Wall -Wextra -Wno-missing-field-initializers -Wstrict-prototypes -Wmissing-prototypes -Wno-unused-parameter -Wno-unused-label -Wshadow -Wmissing-declarations -Wno-long-long -Wundef -Wno-endif-labels -Wpointer-arith -Wbad-function-cast -Wwrite-strings -Wno-sign-compare -Wold-style-definition -Wno-multichar -Wno-deprecated-declarations -Wpacked -Wnested-externs -Winvalid-pch -Wno-pointer-sign -Wno-format-zero-length -Wtype-limits -Werror-implicit-function-declaration"],)
 export CFLAGS
 
-AC_ARG_WITH([oldhwdesc],
-	[AS_HELP_STRING([--with-oldhwdesc],
-	[Use the old version of the hwdesc routines])],
-	[useold=yes],[useold=no])
-
-if test z"$useold" = "zyes" ; then
-    AC_DEFINE([USE_OLD],1,[Define to use old version of hwdesc routines])
-fi
-AM_CONDITIONAL([USE_OLD],[test x$useold = xyes])
-
 # checks for programs
 dnl AC_PROG_MAKE_SET
 dnl Add @SET_MAKE@ to Makefile.in/am

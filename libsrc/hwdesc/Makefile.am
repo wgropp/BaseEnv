@@ -3,11 +3,9 @@ noinst_LTLIBRARIES = libbenvhwdesc2.la
 libbenvhwdesc2_la_SOURCES = hwdescutil2.c hwdescarg.c mpixsplit.c \
 	hwdescparm.c hwdescprint.c nodeinfo2.c hwdescimpl2.h
 
-DIST_SUBDIRS = tests
+SUBDIRS = tests
 
 # See src/hwinfo for a sample program
-testbuilds:
-	(cd tests && $(MAKE) testbuilds)
 clean-local:
 	(cd tests && $(MAKE) clean)
 
